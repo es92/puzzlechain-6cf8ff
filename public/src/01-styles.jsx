@@ -3792,6 +3792,16 @@ ${emitTapHighlightRules()}
 .hr-overlay-title { font-size: 1.6rem; font-weight: 800; }
 .hr-overlay-sub { font-size: 0.85rem; color: ${C.muted}; }
 
+/* Jet Run (request #326) — the same self-shell canvas stage Hash Rush runs.
+   The dark gradient backdrop is intrinsic arcade art, not chrome: the sky the
+   jet flies through is drawn over it, and the rest of the palette applies to
+   the chrome around it. No animation here, so no reduced-motion addition. */
+.jr-wrap { position: relative; width: 100%; height: 62vh; max-height: 560px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #0c1020, #131a30); border: 1px solid ${C.border}; }
+.jr-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.jr-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; background: rgba(8,10,18,0.6); text-align: center; padding: 1rem; }
+.jr-overlay-title { font-size: 1.6rem; font-weight: 800; }
+.jr-overlay-sub { font-size: 0.85rem; color: ${C.muted}; }
+
 /* ---- Phase 6: shared card/tile engine + Lane A dailies ---- */
 .p6-hint { color: ${C.muted}; font-size: 12px; text-align: center; margin-top: 14px; line-height: 1.5; }
 .p6-banner {

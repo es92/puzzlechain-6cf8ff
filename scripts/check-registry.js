@@ -218,6 +218,7 @@ const CLIENT_LEVEL_TABLES = [
   { id: 'mahjongsol',   file: 'public/src/24-engine-cards.jsx',     array: 'MJ_LAYOUTS' },
   { id: 'hashrush',     file: 'public/src/23-game-hashrush.jsx',    array: 'HR_STORY' },
   { id: 'hashrush',     file: 'public/src/23-game-hashrush.jsx',    number: 'HR_STORY_BANDS' },
+  { id: 'jetrun',       file: 'public/src/32-game-jetrun.jsx',      array: 'DF_STORY' },
   { id: 'zuma',         file: 'public/src/20-game-marbleloop.jsx',  number: 'ZUMA_STORY_BANDS' },
   { id: 'match3',       file: 'public/src/20-game-marbleloop.jsx',  number: 'M3_STORY_BANDS' },
   { id: 'bounce',       file: 'public/src/17-game-bounce.jsx',      array: 'BOUNCE_PATTERNS', min: true },

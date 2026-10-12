@@ -534,14 +534,29 @@ function cwScoreGuess(guess, answer) {
    this thing"), and when those have not been enough the next help a stuck
    player wants is structural.
 
-   The last letter is withheld from short words on purpose. Giving first AND
-   last of a 4-letter word leaves two, which is not a clue any more; at five
-   letters or more it still leaves real work. */
+   EVERY word of three letters or more carries BOTH derived clues, so the
+   per-word clue count is uniform (four) however long today's words run. A
+   short first word used to offer only three — the day's board read as a
+   different game, with a smaller hint budget nobody had chosen.
+
+   The second clue for a short word is therefore NOT the last letter. Giving
+   first AND last of a 4-letter word leaves two, which is not a clue any
+   more, and of a 3-letter word leaves one. Short words get the answer's
+   repetition status instead: whether a letter appears more than once. That
+   is real structural help — on a 3-letter word it is the difference between
+   EEL and NET — and it never spells anything. */
 function cwDerivedHints(word) {
   const w = String(word || '').toUpperCase();
   if (w.length < 3) return [];
   const out = [`It starts with "${w[0]}".`];
-  if (w.length >= 5) out.push(`It ends with "${w[w.length - 1]}".`);
+  if (w.length >= 5) {
+    out.push(`It ends with "${w[w.length - 1]}".`);
+  } else {
+    const counts = {};
+    for (const ch of w) counts[ch] = (counts[ch] || 0) + 1;
+    const repeats = Object.keys(counts).some(ch => counts[ch] > 1);
+    out.push(repeats ? 'A letter appears more than once.' : 'No letter appears more than once.');
+  }
   return out;
 }
 

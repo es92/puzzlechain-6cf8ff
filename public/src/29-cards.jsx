@@ -107,6 +107,7 @@ const PLAY_MODES_BY_ID = {
   diamondrush:       ['daily', 'story', 'arcade'],
   zuma:              ['daily', 'story', 'arcade'],
   hashrush:          ['daily', 'story', 'arcade'],
+  jetrun:            ['daily', 'story', 'arcade'],
   match3:            ['daily', 'story', 'arcade'],
   'knights-tour':    ['daily', 'story', 'arcade'],
 

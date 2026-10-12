@@ -1898,6 +1898,39 @@
       "expectText": "Best 350"
     },
     {
+      "id": "jetrun.board",
+      "name": "Jet Run opens on the flying brief",
+      "path": "/?game=jetrun",
+      "expectText": "Start flying",
+      "visual": true,
+      "impact": [
+        "public/src/32-game-jetrun.jsx",
+        "public/src/01-styles.jsx",
+        "public/src/28-registry.jsx",
+        "public/src/29-cards.jsx"
+      ]
+    },
+    {
+      "name": "A bounded Jet Run course names the score it wants",
+      "path": "/?game=jetrun&pmode=story&band=1&play=1",
+      "expectSelector": ".jr-wrap[data-jr-target]:not([data-jr-target=\"0\"])"
+    },
+    {
+      "name": "An endless Jet Run run sets no target",
+      "path": "/?game=jetrun&pmode=arcade&band=hard&play=1",
+      "expectSelector": ".jr-wrap[data-jr-target=\"0\"]"
+    },
+    {
+      "name": "A finished Jet Run flight draws no end panel of its own",
+      "path": "/?game=jetrun&play=1&jrdead=1",
+      "expectSelector": ".jr-wrap[data-jr-phase=\"dead\"]:not(:has(.jr-overlay))"
+    },
+    {
+      "name": "Story picker opens Jet Run's ladder",
+      "path": "/?game=jetrun&pmode=story&demo=modes",
+      "expectSelector": ".pregame-band"
+    },
+    {
       "name": "Classic shell is inset from the safe area (fixed top bar)",
       "path": "/?game=snake&sheet=leaderboard",
       "expectSelector": ".cg-shell .cg-topbar",

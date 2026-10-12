@@ -374,6 +374,30 @@ const GAMES = [
     component: HashRushGame,
     leaderboard: true,
   },
+  // Request #326: a fighter-jet flying game. The request literally asked for
+  // "aerial combat with F-16s"; the platform's content rules ban combat and
+  // weapons as game mechanics, so nothing here is shot at — the jet threads
+  // gates, dodges storm clouds and collects fuel stars. See the header of
+  // 32-game-jetrun.jsx.
+  {
+    id: 'jetrun',
+    name: 'Jet Run',
+    icon: '✈️',
+    category: 'classic',
+    shell: 'self',
+    desc: 'Steer your fighter jet through the gates — thread gaps, dodge storms, chase the score.',
+    tag: 'Arcade',
+    tagColor: GA.sky,
+    manifest: { scoreDirection: 'higher', tieBreak: 'first-to-score', sessionLength: 'short', input: 'drag', undo: 'none' },
+    howToPlay: [
+      { title: 'Steer the jet', body: 'Drag your finger to steer — the jet climbs on its own and the course streams past. Hold an arrow key on a desktop; the jet banks toward wherever you point.' },
+      { title: 'Thread the gates', body: 'Fly between the amber posts for 10 points. Consecutive gates build a combo multiplier up to ×5 — clipping a post or missing a gap breaks it.' },
+      { title: 'Stars and storms', body: 'Fuel stars are worth 5 points and never break your combo. Storm clouds cost a shield and the combo with it — weave around them.' },
+      { title: 'Beat the course', body: 'You fly with 3 shields; lose them all and the flight is over. Daily and story courses show a target score — reach it before the clock runs out to clear the course.' },
+    ],
+    component: JetRunGame,
+    leaderboard: true,
+  },
   // Phase 5 board games — online head-to-head over classic_rooms; the server
   // referees every move (rules modules in lib/board-rules.js) and wins settle
   // on the rating ladder.

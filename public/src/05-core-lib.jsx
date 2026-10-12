@@ -603,6 +603,13 @@ const STREAK_TIERS = [
    ============================================================ */
 const CHANGELOG = [
   {
+    id: 'w2026-10-05',
+    weekOf: 'Week of October 5, 2026',
+    items: [
+      'New game: Jet Run — steer a fighter jet through the gates, dodge the storm clouds and grab the fuel stars, with Daily, Story and Arcade modes.',
+    ],
+  },
+  {
     id: 'w2026-08-17',
     weekOf: 'Week of August 17, 2026',
     items: [
