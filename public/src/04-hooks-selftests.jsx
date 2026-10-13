@@ -610,6 +610,34 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* #340 — the result card's Share button must survive a re-render. ShareButton
+     used to be declared INSIDE App, so every App render (a timer tick, the
+     leaderboard fetch landing) handed React a NEW component type, which
+     unmounts and remounts the subtree: the button's `copied` state was wiped
+     mid-feedback and a tap read as a dead button. Mount it, re-render the way
+     App does, and assert the SAME DOM node is still there — an in-App
+     definition fails this with a different node (and a module-scope name that
+     no longer resolves fails the check outright). */
+  check('share-button-survives-rerender', () => {
+    const host = document.createElement('div');
+    const root = ReactDOM.createRoot(host);
+    let first = null;
+    ReactDOM.flushSync(() => root.render(<ShareButton text="Game Corner test" />));
+    first = host.querySelector('button');
+    if (!first) { root.unmount(); throw new Error('ShareButton rendered no button'); }
+    // The re-render the running app does constantly while the card is open.
+    ReactDOM.flushSync(() => root.render(<ShareButton text="Game Corner test" />));
+    const second = host.querySelector('button');
+    root.unmount();
+    if (first !== second) {
+      throw new Error('ShareButton remounted across a re-render — its copied state would be wiped');
+    }
+    if (!/Share result/.test(second.textContent)) {
+      throw new Error('label read ' + JSON.stringify(second.textContent));
+    }
+    return true;
+  });
+
   /* #208 — a touch DROP must yield coordinates. `e.touches` is a TouchList on
      every TouchEvent and a TouchList is an object, so testing it for existence
      rather than length made `touchend` — whose `touches` is empty by

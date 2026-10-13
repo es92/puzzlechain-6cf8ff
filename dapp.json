@@ -1010,6 +1010,11 @@
       "expectSelector": ".win-card .we-v"
     },
     {
+      "name": "The win card carries a Share button",
+      "path": "/?game=sudoku&result=win",
+      "expectSelector": ".win-card button.tappable[data-share-btn=\"1\"]"
+    },
+    {
       "name": "Home is the bottom of the back stack",
       "path": "/",
       "expectSelector": ".app[data-nav-depth=\"0\"]"

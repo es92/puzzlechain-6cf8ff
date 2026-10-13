@@ -458,12 +458,39 @@ function saveHistory(key, entry, max) {
 // and forward it on every API call via the x-usernode-token header.
 const USERNODE_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
 
-/* Copy a line to the clipboard, degrading to a no-op where it is unavailable
-   (an insecure origin, or a browser that withholds it). Every caller shows its
-   own "copied" feedback, so a silent failure only costs the confirmation. */
+/* Copy a line to the clipboard. Returns a Promise<boolean> so a caller can
+   tell a real success from a silent failure — the async clipboard API can be
+   absent (older WebViews), reject (permission withheld) in a cross-origin
+   frame, and callers that show "Copied!" unconditionally were lying when it
+   did. The fallback is the legacy path — a selected hidden textarea plus
+   execCommand('copy') — which works inside a user gesture where the async API
+   does not. Returns false when neither path copies. */
+function copyViaExecCommand(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    // Off-screen but rendered: display:none defeats execCommand('copy').
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch { return false; }
+}
 function copyText(text) {
-  try { return navigator.clipboard.writeText(text).catch(() => {}); }
-  catch { return Promise.resolve(); }
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(text)
+        .then(() => true)
+        .catch(() => copyViaExecCommand(text));
+    }
+  } catch {}
+  return Promise.resolve(copyViaExecCommand(text));
 }
 
 // Coarse relative time for history rows — "3d", "2h", "just now". Deliberately

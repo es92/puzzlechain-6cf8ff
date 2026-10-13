@@ -41,6 +41,39 @@ function WinEarned({ value }) {
   return <span className="we-v" data-win-earned={n}>+{shown}</span>;
 }
 
+/* Copy-to-clipboard Share button for the win/loss result cards. Declared at
+   MODULE scope on purpose, and this is the whole of issue #340: defined
+   inside App it got a new function identity on every App render, and React
+   treats a changed component type as an unmount-plus-remount — so the button
+   was rebuilt (local state wiped) on every timer tick and every state update
+   behind the card. Measured on the open win card: seven distinct DOM elements
+   in four seconds. A player who tapped Share saw "Copied!" flash for a few
+   hundred milliseconds and revert, or saw nothing at all when the copy
+   resolved after the remount had orphaned the setState — a dead button.
+   Module scope keeps the identity stable so the feedback survives re-renders.
+   The copy itself goes through copyText (clipboard API, then an execCommand
+   fallback) and says so when neither path worked, instead of failing silently. */
+function ShareButton({ text }) {
+  const [copied, setCopied] = useState(null); // null | 'ok' | 'fail'
+  if (!text) return null;
+  const copy = () => {
+    copyText(text).then((ok) => {
+      setCopied(ok ? 'ok' : 'fail');
+      setTimeout(() => setCopied(null), ok ? 1500 : 2600);
+    });
+  };
+  return (
+    <button
+      className="primary-btn tappable"
+      data-share-btn="1"
+      style={{ background: C.violet, marginBottom: '0.6rem' }}
+      {...tapProps(copy)}
+    >
+      {copied === 'ok' ? 'Copied!' : copied === 'fail' ? "Couldn't copy. Try again." : 'Share result'}
+    </button>
+  );
+}
+
 function App() {
   const [screen, setScreen] = useState(() => {
     // Support ?screen=friends / ?screen=session deep links for testing.
@@ -2163,29 +2196,6 @@ function App() {
     onNewGameMode: handleNewGameMode,
     onSaveGame: handleSaveGame,
   } : null;
-
-  // Copy-to-clipboard Share button for the win/loss overlays. Flips its label
-  // to "Copied!" briefly; degrades to a no-op where clipboard is unavailable.
-  function ShareButton({ text }) {
-    const [copied, setCopied] = useState(false);
-    if (!text) return null;
-    const copy = async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      } catch {}
-    };
-    return (
-      <button
-        className="primary-btn"
-        style={{ background: C.violet, marginBottom: '0.6rem' }}
-        onClick={copy}
-      >
-        {copied ? 'Copied!' : 'Share result'}
-      </button>
-    );
-  }
 
   const fmtTime = s =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
