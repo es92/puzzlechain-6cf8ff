@@ -4159,6 +4159,20 @@ ${emitTapHighlightRules()}
 .home-daily-note {
   color: ${C.muted}; font-size: 0.82rem; margin: 0.5rem 0 0.6rem;
 }
+/* #350 — the home grid's search field. Copies the Friends screen's
+   .friends-search-input inline values (full-width rounded field on the card
+   surface, hairline border); font-size 16px so iOS does not zoom on focus. */
+.home-search-input {
+  width: 100%; box-sizing: border-box; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem;
+  background: ${C.card}; border: 1px solid ${C.border}; border-radius: 10px;
+  color: ${C.text}; font-family: inherit; font-size: 16px; outline: none;
+}
+.home-search-input:focus { border-color: ${C.accent}; }
+.home-search-input::placeholder { color: ${C.muted}; }
+/* The search's empty line, in the register of .home-fav-empty below. */
+.home-search-empty {
+  color: ${C.muted}; font-size: 0.82rem; margin: 0.6rem 0 0.2rem;
+}
 .home-filter-chips { display: flex; gap: 0.45rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
 .home-chip {
   background: ${C.card}; border: 1px solid ${C.border}; border-radius: 999px;

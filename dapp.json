@@ -28,6 +28,21 @@
       "expectText": "Game Corner"
     },
     {
+      "name": "Home shows the games search field",
+      "path": "/",
+      "expectSelector": ".home-search-input[placeholder=\"Search games\"] + .home-filter-chips"
+    },
+    {
+      "name": "Searching narrows the grid to the matching game",
+      "path": "/?gamesearch=sudoku",
+      "expectSelector": ".grid .card[aria-label=\"Sudoku\"]"
+    },
+    {
+      "name": "Search with no match shows the empty line",
+      "path": "/?gamesearch=zzqxw",
+      "expectText": "No games match"
+    },
+    {
       "name": "Nav wordmark sits on one line in the compact header",
       "path": "/",
       "expectSelector": ".nav .nav-brand .brandword"
