@@ -4393,4 +4393,31 @@ ${emitTapHighlightRules()}
   padding: .1rem .4rem; border-radius: 999px;
   background: ${ca('gold', '33')}; color: ${C.gold}; border: 1px solid ${ca('gold', '55')};
 }
+
+/* #323 — games deserve more of a desktop window. Same rules as above, with
+   the caps raised at >= 900px wide; the min-height clause keeps this block
+   from overlapping the landscape/short-window --cg-board override, which
+   still wins on a phone held sideways. Boards and canvases already size
+   from their measured box (aspect-ratio DOM boards, useFitBox), so raising
+   the caps is all that is needed; phones and tablets are unchanged, and the
+   lobby grid, profile and friends screens keep their width on purpose.
+   Daily Cipher is left out: its grid and keyboard sizes are fixed in the
+   game's own drawing code, so a wider box would only add empty space. */
+@media (min-width: 900px) and (min-height: 600px) {
+  .game-wrap { max-width: 880px; }
+  .kl-game, .sp-game { max-width: 880px; }
+  .cg-shell { --cg-board: min(94vw, calc(100dvh - var(--cg-chrome) - 5.5rem - var(--pc-safe-top) - var(--pc-safe-bottom)), 760px); }
+  .sudoku { max-width: 540px; }
+  .wordsearch { max-width: 620px; }
+  .wspr-grid { max-width: 480px; }
+  .dsnk-board { max-width: 520px; }
+  .tm-wrap.fit-col { max-width: 760px; }
+  .ms-boardbox { width: min(92vw, 540px, var(--cg-board, 540px)); }
+  .kt-boardbox { width: min(92vw, 680px, var(--cg-board, 680px)); }
+  /* --brg-cap is set inline by BrgBoardBox, so scale it rather than override it. */
+  .brg-canvas-box { width: min(92vw, calc(var(--brg-cap, 380px) * 1.4), var(--cg-board, 532px)); }
+  .cg-stage .ms-boardbox, .cg-stage .t2048-board-wrap { max-width: min(540px, var(--cg-board)) !important; }
+  .cg-stage .mnc-board { max-width: min(680px, var(--cg-board)) !important; }
+  .cg-stage .cnl-board-wrap { max-width: min(680px, var(--cg-board)) !important; }
+}
 `;

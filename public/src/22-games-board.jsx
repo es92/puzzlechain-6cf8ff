@@ -187,7 +187,13 @@ function CheckersBoardView({ st, myPlayerNum, isMyTurn, submit }) {
   const boxRef = useRef(null);
   const canvasRef = useRef(null);
   const { boxW } = useFitBox(boxRef, { cols: 1, rows: 1, maxCell: 100000 });
-  const cell = Math.max(28, Math.min(48, Math.floor(Math.floor(boxW) / 8)));
+  /* #323 — the caps below are finger-size for phones; on a desktop box the
+   cells grow with it. The gate is the BOX width: phones and tablets cap at
+   340–380 (the base --brg-cap), the desktop media query lifts it to 476–532,
+   and 440 sits between. The box is still bounded by --cg-board, which folds
+   in the viewport height, so nothing can overflow. */
+  const brgCellCap = (boxW > 440) ? Infinity : 48;
+  const cell = Math.max(28, Math.min(brgCellCap, Math.floor(Math.floor(boxW) / 8)));
   const side = cell * 8;
   const showNote = st.mustJumpFrom != null && isMyTurn;
   const NOTE_H = showNote ? 22 : 0, LEG_H = 24;
@@ -292,7 +298,7 @@ function ReversiBoardView({ st, myPlayerNum, isMyTurn, submit }) {
   const boxRef = useRef(null);
   const canvasRef = useRef(null);
   const { boxW } = useFitBox(boxRef, { cols: 1, rows: 1, maxCell: 100000 });
-  const cell = Math.max(26, Math.min(44, Math.floor((Math.floor(boxW) - 4 - 14) / 8)));
+  const cell = Math.max(26, Math.min((boxW > 440) ? Infinity : 44, Math.floor((Math.floor(boxW) - 4 - 14) / 8)));
   const step = cell + 2;
   const side = step * 8 - 2 + 4; // 2px gutters between felt cells + 2px frame
   const NOTE_H = 24;
@@ -367,7 +373,7 @@ function FourInARowView({ st, myPlayerNum, isMyTurn, submit }) {
   const boxRef = useRef(null);
   const canvasRef = useRef(null);
   const { boxW } = useFitBox(boxRef, { cols: 1, rows: 1, maxCell: 100000 });
-  const cell = Math.max(30, Math.min(46, Math.floor((Math.floor(boxW) - 16 - 24) / 7)));
+  const cell = Math.max(30, Math.min((boxW > 440) ? Infinity : 46, Math.floor((Math.floor(boxW) - 16 - 24) / 7)));
   const step = cell + 4;
   const W = step * 7 - 4 + 16, BH = step * 6 - 4 + 16;
   const LEG_H = 24;
@@ -477,7 +483,7 @@ function GomokuBoardView({ st, myPlayerNum, isMyTurn, submit }) {
   const boxRef = useRef(null);
   const canvasRef = useRef(null);
   const { boxW } = useFitBox(boxRef, { cols: 1, rows: 1, maxCell: 100000 });
-  const cell = Math.max(18, Math.min(26, Math.floor((Math.floor(boxW) - 4 - 14) / 15)));
+  const cell = Math.max(18, Math.min((boxW > 440) ? Infinity : 26, Math.floor((Math.floor(boxW) - 4 - 14) / 15)));
   const step = cell + 1;
   const side = step * 15 - 1 + 4;
   const BAR_H = isMyTurn ? 52 : 0;
@@ -724,7 +730,7 @@ function LudoBoardView({ st, myPlayerNum, isMyTurn, submit }) {
   const boxRef = useRef(null);
   const canvasRef = useRef(null);
   const { boxW } = useFitBox(boxRef, { cols: 1, rows: 1, maxCell: 100000 });
-  const cell = Math.max(18, Math.min(26, Math.floor((Math.floor(boxW) - 6 - 14) / 15)));
+  const cell = Math.max(18, Math.min((boxW > 440) ? Infinity : 26, Math.floor((Math.floor(boxW) - 6 - 14) / 15)));
   const step = cell + 1;
   const PADI = 3;
   const side = step * 15 - 1 + PADI * 2;

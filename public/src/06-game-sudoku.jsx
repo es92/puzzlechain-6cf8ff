@@ -877,7 +877,12 @@ function SudokuBoard({ difficulty, bandName, board, dayNum, onWin, onStepChange,
   const BAND_H = bandName ? 20 : 0;
   const chrome = PILL_H + BAND_H + HINT_H + KEY_H + ERASE_H + GAP * 4;
   const availB = Math.max(0, Math.min(W, Math.floor(boxH) - chrome));
-  const sdkCell = Math.max(24, Math.min(size === 9 ? 44 : 56, Math.floor((availB - (size - 1)) / size)));
+  /* #323 — the 44/56px caps are finger-size for phones. On a desktop box
+     (wider than the old 620px column) let cells grow with the space the fit
+     column affords; availB still bounds them by height, so the board never
+     outgrows the window. Phones keep the old caps. */
+  const sdkCellCap = W > 620 ? Infinity : (size === 9 ? 44 : 56);
+  const sdkCell = Math.max(24, Math.min(sdkCellCap, Math.floor((availB - (size - 1)) / size)));
   const sdkStep = sdkCell + 1;
   const sdkSide = sdkStep * size - 1;
   const H = chrome + sdkSide;
