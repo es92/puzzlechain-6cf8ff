@@ -1069,11 +1069,20 @@ function CryptoWordleGame({ onWin, onLose, onStepChange, offset, savedProgress, 
         : keyState[ch] === 'yellow' ? PAL.gold
         : keyState[ch] === 'gray' ? PAL.rose : PAL.border;
       const keyInk = (ch) => keyState[ch] ? '#fff' : PAL.text;
+      // Rows 0 and 1 share the top row's key width. Row 1 (9 keys) computing
+      // its own width filled the whole kbW, and the old half-key indent then
+      // pushed it half a key past the right edge, clipping the L key at every
+      // width. With the shared width the row is narrower, so it can be
+      // centred by its real width instead of the indent.
+      const uw0 = (kbW - KGAP * (CW_KEYS[0].length - 1)) / CW_KEYS[0].length;
       CW_KEYS.forEach((row, ri) => {
         const y = kbdY + ri * (KEY_H + KGAP);
         const units = row.length + (ri === 2 ? 3.2 : 0); // two 1.6-wide keys
-        const uw = (kbW - KGAP * (row.length - 1 + (ri === 2 ? 2 : 0))) / units;
-        let x = kbX0 + (ri === 1 ? uw / 2 : 0);
+        const uw = ri === 2
+          ? (kbW - KGAP * (row.length - 1 + 2)) / units
+          : uw0;
+        let x = kbX0;
+        if (ri === 1) x = kbX0 + (kbW - (row.length * uw + KGAP * (row.length - 1))) / 2;
         if (ri === 2) {
           controls.push({ id: 'enter', kind: 'button', r: [x, y, uw * 1.6, KEY_H], label: 'Enter', font: 11, noBorder: true, bg: PAL.border, radius: 6, action: submit });
           x += uw * 1.6 + KGAP;
