@@ -814,6 +814,49 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* #350 — the All Games search field's predicate: case-insensitive on the
+     card's DISPLAY name, whitespace-trimmed, an empty query passes
+     everything. This is the filter the home render applies between the chip
+     filter and the pin partition, asserted here against GAME_CARDS the same
+     way the favorites/pin checks walk it. */
+  check('home-search-filter', () => {
+    if (!homeSearchMatch(GAME_CARDS[0], '')) {
+      throw new Error('an empty query must match every card');
+    }
+    if (!homeSearchMatch(GAME_CARDS[0], '   ')) {
+      throw new Error('a whitespace-only query must match every card');
+    }
+    // Case-insensitive: every casing finds the same cards ("sud" hits Sudoku
+    // AND Sudoku Mini — both are registry cards, so the exact count is the
+    // registry's business, not this check's).
+    const expected = GAME_CARDS.filter(c => c.name.toLowerCase().includes('sud'));
+    if (!expected.some(c => c.name === 'Sudoku')) {
+      throw new Error('no card name contains "sud" — update this check');
+    }
+    for (const q of ['SUD', 'sud', 'Sud']) {
+      const hits = GAME_CARDS.filter(c => homeSearchMatch(c, q));
+      if (hits.length !== expected.length) {
+        throw new Error('query "' + q + '" found ' + hits.length + ' of ' + expected.length + ' cards');
+      }
+      for (const c of expected) {
+        if (!hits.includes(c)) throw new Error('query "' + q + '" missed ' + c.name);
+      }
+    }
+    // The merged Snake card answers to its one shared display name, and the
+    // query is trimmed before matching. (Snakes & Ladders legitimately
+    // matches too — it contains the substring — so assert inclusion.)
+    const snake = CARD_BY_GAME_ID['snakedaily'];
+    if (!snake) throw new Error('snakedaily resolves to no card');
+    const snakeHits = GAME_CARDS.filter(c => homeSearchMatch(c, ' snake '));
+    if (!snakeHits.includes(snake)) {
+      throw new Error('a padded "snake" query missed the merged Snake card');
+    }
+    if (GAME_CARDS.some(c => homeSearchMatch(c, 'zzz'))) {
+      throw new Error('a query no name contains matched something');
+    }
+    return true;
+  });
+
   // Phase 5 (#143) — 2048 vertical swipes were inverted. A lone tile at the
   // bottom row swiped 'up' must reach row 0, and vice versa.
   check('t2048-up', () => {

@@ -2837,17 +2837,17 @@ function App() {
                   const c = CARD_BY_GAME_ID[id];
                   if (c) pinnedSet.add(c.key);
                 }
-                const pinnedCards = ordered.filter(c => pinnedSet.has(c.key));
-                const restCards = ordered.filter(c => !pinnedSet.has(c.key));
-                /* #350 — the search narrows the list the chip filter ALREADY
-                   produced, on the non-pinned half only (a pinned match shows
-                   in the Pinned row, as today). Whitespace-only input counts
-                   as empty, so it filters nothing and shows no empty line. */
-                const searchQ = homeSearch.trim().toLowerCase();
-                const searchedRest = searchQ
-                  ? restCards.filter(c => String(c.name || '').toLowerCase().includes(searchQ))
-                  : restCards;
-                const searchEmpty = searchQ && searchedRest.length === 0;
+                /* #350 — the search is a SECOND filter on the already-chip-
+                   filtered list, applied before the pin partition so the two
+                   filters AND together: a card must pass both to appear, and a
+                   pinned card that fails the search is absent from both
+                   sections, exactly as one that fails a chip already is (the
+                   #232 rule — the partition stays lossless). The Daily chip's
+                   done/todo split below derives from restCards, so it narrows
+                   with the search for free. */
+                const searched = ordered.filter(c => homeSearchMatch(c, homeSearch));
+                const pinnedCards = searched.filter(c => pinnedSet.has(c.key));
+                const restCards = searched.filter(c => !pinnedSet.has(c.key));
                 const atPinCap = pins.length >= PIN_LIMIT;
                 const cardProps = (c) => ({
                   key: c.key,
@@ -2887,13 +2887,19 @@ function App() {
                     )}
                     {pinNotice && <div className="home-pin-full">{pinNotice}</div>}
                     <div className="home-section-title">All Games</div>
+                    {/* #350 — type-to-filter above the chips, so the two
+                        narrowing controls read as one row. It ANDs with the
+                        active chip below and with the Pinned section above:
+                        everything this list shows obeys it. Not in
+                        TAPPABLE_CLASSES — a text input keeps native
+                        long-press selection. */}
                     <input
-                      type="search"
+                      type="text"
                       className="home-search-input"
                       placeholder="Search games"
                       aria-label="Search games"
                       value={homeSearch}
-                      onChange={e => setHomeSearch(e.target.value)}
+                      onChange={(e) => setHomeSearch(e.target.value)}
                     />
                     <div className="home-filter-chips" role="tablist" aria-label="Filter games">
                       {[
@@ -2930,6 +2936,17 @@ function App() {
                       </div>
                     )}
                     {(() => {
+                      /* #350 — the search's own empty state: the chip DID have
+                         candidates and none survive the search. A chip that is
+                         empty on its own (Favorites at 0 stars) keeps its own
+                         line above, which explains a different absence. */
+                      if (homeSearch.trim() && searched.length === 0 && ordered.length > 0) {
+                        return (
+                          <div className="home-search-empty">
+                            No games match "{homeSearch.trim()}".
+                          </div>
+                        );
+                      }
                       /* #226 — under the Daily chip, split the grid into what
                          is still open today and what is already done. The card
                          already knows: cardDailyId + attempts[id].finishedAt is
@@ -2948,33 +2965,22 @@ function App() {
                         return !!(a && a.finishedAt);
                       };
                       const done = homeFilter === 'daily' && !loading
-                        ? searchedRest.filter(dailyDone) : [];
+                        ? restCards.filter(dailyDone) : [];
                       if (done.length === 0) {
-                        /* #350 — while a search is active, a no-match result
-                           is one line, not an empty grid; the Favorites
-                           chip's own empty line wins so only one message
-                           shows at a time. */
-                        if (searchEmpty && !(homeFilter === 'favorites' && starredCount === 0)) {
-                          return (
-                            <div className="home-search-empty">
-                              No games match “{homeSearch.trim()}”.
-                            </div>
-                          );
-                        }
                         return (
                           <div className="grid">
-                            {searchedRest.map(c => <GameCard {...cardProps(c)} />)}
+                            {restCards.map(c => <GameCard {...cardProps(c)} />)}
                           </div>
                         );
                       }
-                      const todo = searchedRest.filter(c => !dailyDone(c));
+                      const todo = restCards.filter(c => !dailyDone(c));
                       return (
                         <React.Fragment>
                           {/* While searching, an empty todo half would read
                               "Every daily is done" over a list the search just
                               hid — untrue. The heading and its line step aside
                               and only Completed today shows. */}
-                          {!(searchQ && todo.length === 0) && (
+                          {!(homeSearch.trim() && todo.length === 0) && (
                             <React.Fragment>
                               <div className="home-section-title home-split-title">
                                 Still to play

@@ -4159,19 +4159,25 @@ ${emitTapHighlightRules()}
 .home-daily-note {
   color: ${C.muted}; font-size: 0.82rem; margin: 0.5rem 0 0.6rem;
 }
-/* #350 — the home grid's search field. Copies the Friends screen's
-   .friends-search-input inline values (full-width rounded field on the card
-   surface, hairline border); font-size 16px so iOS does not zoom on focus. */
+/* #350 — the All Games search field, above the chips. The Friends screen's
+   search input graduated into a class so the two copies of the same control
+   cannot drift (19-social.jsx styles it inline). Tokens only, so it re-themes
+   for free. It is a TEXT INPUT, so it is deliberately NOT in
+   TAPPABLE_CLASSES: native long-press selection must keep working, and no
+   touch-action/tap-highlight rule should be generated for it. font-size is a
+   full 16px on purpose — under that, focusing the field auto-zooms the page
+   on iOS, and this is exactly the control a phone user will focus. */
 .home-search-input {
-  width: 100%; box-sizing: border-box; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem;
+  display: block; width: 100%; padding: 0.7rem 0.9rem; margin: 0 0 0.7rem;
   background: ${C.card}; border: 1px solid ${C.border}; border-radius: 10px;
   color: ${C.text}; font-family: inherit; font-size: 16px; outline: none;
 }
 .home-search-input:focus { border-color: ${C.accent}; }
-.home-search-input::placeholder { color: ${C.muted}; }
-/* The search's empty line, in the register of .home-fav-empty below. */
+.home-search-input::placeholder { color: ${C.dim}; }
+/* The search's own empty state. Same register as .home-pin-empty and
+   .home-fav-empty above — one muted line, no box, no icon. */
 .home-search-empty {
-  color: ${C.muted}; font-size: 0.82rem; margin: 0.6rem 0 0.2rem;
+  color: ${C.muted}; font-size: 0.78rem; margin: -0.35rem 0 0.7rem;
 }
 .home-filter-chips { display: flex; gap: 0.45rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
 .home-chip {

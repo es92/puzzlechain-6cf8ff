@@ -295,6 +295,16 @@ const cardDailyId = (card) => {
   return d ? d.gameId : null;
 };
 
+// #350 — the All Games search field's predicate: a case-insensitive match on
+// the card's DISPLAY name (the same string .card-name renders), so the four
+// merged cards answer to their one shared title. A query that is empty after
+// trimming passes everything — a stray space must not blank the grid.
+const homeSearchMatch = (card, query) => {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return true;
+  return card.name.toLowerCase().includes(q);
+};
+
 /* The registry id a PER-CARD, PER-USER control stores under: the card's
    ANCHOR id. Cards are a client-side composition and can be recomposed;
    registry ids never move, so the durable thing to write to the database is
