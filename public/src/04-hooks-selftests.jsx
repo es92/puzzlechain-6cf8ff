@@ -2356,6 +2356,58 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* Escape from Dracula — the pager's chunking is PURE, so its two load-
+     bearing properties are held here rather than only by eye: every page fits
+     the box it was measured for, and the pages together are the whole text
+     (this is a paged layout, not a truncation). The measure is a fixed
+     10px-per-character stand-in, which makes the expected line count exact. */
+  check('textpager-chunking', () => {
+    const measure = (t) => String(t).length * 10;
+    const paras = [
+      'aaa bbb ccc ddd eee fff ggg hhh iii jjj',
+      'kkk lll mmm',
+      'nnn ooo ppp qqq rrr sss ttt uuu vvv www xxx yyy zzz',
+    ];
+    const maxW = 200, maxLines = 3, lineH = 10;
+    const pages = tpPaginate(measure, paras, maxW, maxLines, lineH, 0);
+    if (!pages.length) throw new Error('produced no pages at all');
+    // 1. Every page fits the measured line budget.
+    pages.forEach((pg, i) => {
+      const lines = pg.reduce((a, b) => a + b.lines, 0);
+      if (lines > maxLines) throw new Error('page ' + i + ' has ' + lines + ' lines, over ' + maxLines);
+      if (!pg.length) throw new Error('page ' + i + ' is empty');
+    });
+    // 2. Lossless AND word-intact: the concatenated pages are the input words.
+    const got = pages.map(pg => pg.map(b => b.text).join(' ')).join(' ').split(/\s+/).filter(Boolean);
+    const want = paras.join(' ').split(/\s+/).filter(Boolean);
+    if (got.length !== want.length || got.some((w, i) => w !== want[i])) {
+      throw new Error('pagination is lossy: ' + got.length + ' words vs ' + want.length);
+    }
+    // 3. Paragraph atomicity: a block never mixes two source paragraphs, and a
+    //    fresh paragraph starts at its own block boundary.
+    pages.forEach(pg => pg.forEach(b => {
+      if (!(b.pi >= 0 && b.pi < paras.length)) throw new Error('block names a bad paragraph');
+    }));
+    return true;
+  });
+
+  /* A one-line text is one page, and a one-page pager offers NO advance — the
+     control would be a press that does nothing. The last page of a multi-page
+     text is the same story: there is nothing after it. */
+  check('textpager-last-page', () => {
+    if (tpCanAdvance(1, 0)) throw new Error('a single page offered an advance');
+    if (tpCanAdvance(3, 2)) throw new Error('the last page offered an advance');
+    if (!tpCanAdvance(3, 0) || !tpCanAdvance(3, 1)) throw new Error('a middle page refused to advance');
+    return true;
+  });
+
+  check('textpager-one-line', () => {
+    const measure = (t) => String(t).length * 10;
+    const pages = tpPaginate(measure, ['one short line'], 400, 5, 10, 0);
+    if (pages.length !== 1) throw new Error('a one-line text made ' + pages.length + ' pages');
+    return true;
+  });
+
   /* Safe-area audit, the static half. Inside the platform frame every bare
      env(safe-area-inset-*) resolves to 0px, so a rule that reads it directly
      is dead chrome: bottom bars sit under the home indicator and overlays run

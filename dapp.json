@@ -1918,6 +1918,11 @@
       "expectText": "Best 350"
     },
     {
+      "name": "A long chapter pages instead of scrolling",
+      "path": "/?game=dracula&play=1",
+      "expectSelector": ".drac-card .tp-more"
+    },
+    {
       "id": "jetrun.board",
       "name": "Jet Run opens on the flying brief",
       "path": "/?game=jetrun",

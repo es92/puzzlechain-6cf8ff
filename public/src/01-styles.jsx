@@ -4400,6 +4400,55 @@ ${emitTapHighlightRules()}
   background: ${ca('gold', '33')}; color: ${C.gold}; border: 1px solid ${ca('gold', '55')};
 }
 
+/* ============================================================
+   Escape from Dracula — the paged reader (TextPager)
+   ============================================================
+   A chapter longer than the page is a measured layout, not a scroll and not a
+   line-clamp: .tp-page is the box the pager measures (useFitBox), the prose is
+   chunked to it, and only one page is in the DOM at a time. The card is the
+   howto-card look, sized to the viewport so the measured box is real at any
+   phone height. */
+.drac-card {
+  width: 100%; max-width: min(560px, 100%);
+  height: 100%; min-height: 0; max-height: 680px;
+  display: flex; flex-direction: column;
+  background: ${C.card}; border: 1px solid ${C.border}; border-radius: 16px;
+  overflow: hidden;
+}
+.drac-head { flex: 0 0 auto; padding: 1rem 1.3rem 0; }
+.drac-kicker {
+  font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: ${C.muted};
+}
+.drac-title { margin: 0.15rem 0 0; font-size: 1.15rem; font-weight: 700; }
+
+.tp-root { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+/* THE MEASURED BOX. overflow:hidden is the "nothing scrolls off screen" rule
+   made structural: even if a block overshoots by a pixel, it cannot scroll. */
+.tp-page {
+  flex: 1 1 auto; min-height: 0; overflow: hidden;
+  padding: 0.85rem 1.3rem 0;
+  font-size: 0.94rem; line-height: 1.55; color: ${C.text};
+  outline: none;
+}
+.tp-page.tp-tappable { cursor: pointer; }
+.tp-page:focus-visible { box-shadow: inset 0 0 0 2px ${C.accent}; border-radius: 12px; }
+.tp-page > .tp-text:first-child { margin-top: 0; }
+.tp-text { margin: 0.7rem 0 0; }
+.tp-foot { flex: 0 0 auto; padding: 0.4rem 1.3rem 1rem; }
+.tp-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 0.4rem; }
+.tp-dots i { width: 6px; height: 6px; border-radius: 50%; background: ${C.border}; display: block; }
+.tp-dots i.on { background: ${C.accent}; }
+/* The quiet reveal control, the same register as the result card's .win-more. */
+.tp-more {
+  width: 100%; margin: 0; background: none; border: none;
+  color: ${C.muted}; font-family: inherit; font-size: 0.86rem; font-weight: 600;
+  padding: 0.55rem; border-radius: 10px; text-align: center; cursor: pointer;
+}
+.tp-more:hover { color: ${C.text}; background: var(--c-well); }
+.tp-more[data-pressed] { background: var(--c-well-strong); }
+.tp-end { text-align: center; font-size: 0.8rem; color: ${C.muted}; padding: 0.4rem 0; }
+
 /* #323 — games deserve more of a desktop window. Same rules as above, with
    the caps raised at >= 900px wide; the min-height clause keeps this block
    from overlapping the landscape/short-window --cg-board override, which

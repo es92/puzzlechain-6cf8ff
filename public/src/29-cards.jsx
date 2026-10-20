@@ -111,6 +111,10 @@ const PLAY_MODES_BY_ID = {
   match3:            ['daily', 'story', 'arcade'],
   'knights-tour':    ['daily', 'story', 'arcade'],
 
+  // Escape from Dracula is a linear narrative reader: no daily deal, no
+  // difficulty ladder, no endless run. It offers no play modes on purpose.
+  dracula:           [],
+
   // Head-to-head: opponent is the axis, so no play modes.
   mancala:           [],
   'chutes-ladders':  [],

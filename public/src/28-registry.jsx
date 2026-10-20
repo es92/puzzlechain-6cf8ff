@@ -1,5 +1,22 @@
 const GAMES = [
   {
+    id: 'dracula',
+    name: 'Escape from Dracula',
+    icon: '🦇',
+    category: 'classic',
+    shell: 'classic',
+    desc: 'Read your way into a house that has been expecting you. Long chapters page instead of scrolling.',
+    tag: 'Story',
+    tagColor: GA.plum,
+    manifest: { scoreDirection: 'higher', tieBreak: 'first-to-score', sessionLength: 'short', input: 'tap', undo: 'none' },
+    howToPlay: [
+      { title: 'Read a page at a time', body: 'A chapter longer than the page is split to fit the screen. Tap More, tap the text, or use Space to turn to the next part.' },
+      { title: 'Nothing is missed', body: 'Every line of the chapter appears on one page or another. The dots above More show how many parts there are and where you are.' },
+      { title: 'The chapter ends', body: 'On the last page the More control goes away and the closing line appears. Nothing to press once there is nothing left to read.' },
+    ],
+    component: EscapeFromDraculaGame,
+  },
+  {
     id: 'sudoku',
     name: 'Sudoku',
     icon: '🔢',
