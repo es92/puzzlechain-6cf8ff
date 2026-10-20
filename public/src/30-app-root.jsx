@@ -161,6 +161,12 @@ function App() {
   const setStepCount = (n) => { stepCountRef.current = typeof n === 'number' ? n : 0; };
   const [user, setUser] = useState(null);       // { username, id, usernodePubkey }
   const [authOk, setAuthOk] = useState(true);    // false → signed-out / DB unreachable
+  // Review round 1: /api/daily failing with a 5xx (or an unreachable server)
+  // used to degrade the lobby to the guest view with nothing said — the hero
+  // and In progress simply vanished. A 401 is the normal signed-out lobby;
+  // only a backend failure sets this, and the hero position then carries an
+  // inline notice with a refetch instead.
+  const [dailyErr, setDailyErr] = useState(false);
   const [, setTick] = useState(0); // 1s heartbeat to keep lobby countdowns live
   // Lobby view (phase 7 home reorg): 'home' is the single scrolling home
   // (GotD hero → in-progress → all games); 'ladder' is the one remaining
@@ -548,7 +554,17 @@ function App() {
     // stays for direct API checks.
     const { ok, status, body } = demo === 'signedout'
       ? { ok: false, status: 401, body: null }
-      : await api(path);
+      : await (async () => {
+          try { return await api(path); }
+          catch {
+            // A network throw is a backend failure, not a signed-out one —
+            // land it in the same error state as a 5xx instead of leaving
+            // the lobby on its loading skeleton forever.
+            return { ok: false, status: 0, body: null };
+          }
+        })();
+    // 401 → the normal guest lobby; 5xx / unreachable → the error notice.
+    setDailyErr(!ok && (status === 0 || status >= 500));
     if (ok && body) {
       GUEST_MODE = false;
       setAuthOk(true);
@@ -632,6 +648,11 @@ function App() {
   };
 
   useEffect(() => { loadDaily(); }, []);
+
+  /* "Try again" on the hero's error notice: rerun loadDaily through the
+     loading state, so the skeleton hero holds the panel's footprint and the
+     checklist's taps no-op while the refetch is in flight. */
+  const retryDaily = () => { setLoading(true); loadDaily(); };
 
   /* Pin / unpin one card (#232). Optimistic so the grid reorders on the tap
      rather than a round trip later, then RECONCILED against the array the
@@ -2675,7 +2696,20 @@ function App() {
                   <button className="wn-strip-dismiss" title="Dismiss" onClick={dismissWhatsNew}>✕</button>
                 </div>
               )}
-              {featuredGame ? (
+              {loading && !featuredGame ? (
+                /* Review round 1: hold the hero's footprint while /api/daily
+                   is in flight, so the grid doesn't jump when the panel
+                   arrives. Static skeleton — no motion, so the reduce-motion
+                   lists need no entry. */
+                <div className="gotd-hero gotd-skel" aria-hidden="true">
+                  <div className="gotd-skel-tile" />
+                  <div className="gotd-skel-info">
+                    <div className="gotd-skel-bar w1" />
+                    <div className="gotd-skel-bar w2" />
+                    <div className="gotd-skel-bar w3" />
+                  </div>
+                </div>
+              ) : featuredGame ? (
                 <GotdHero
                   game={featuredGame}
                   attempt={attempts[featuredGame.id]}
@@ -2685,6 +2719,14 @@ function App() {
                   onReset={onReset}
                   onPlay={() => { if (!loading) launchGame(featuredGame); }}
                 />
+              ) : dailyErr ? (
+                /* Review round 1: a 5xx used to leave nothing where the hero
+                   sits — the lobby looked normal but hollow. Say so, and
+                   offer the refetch, in the same card style. */
+                <div className="gotd-hero gotd-err">
+                  <span className="gotd-err-line">Couldn't load today's game.</span>
+                  <button className="primary-btn gotd-err-retry" onClick={retryDaily}>Try again</button>
+                </div>
               ) : nextResetUtc ? (
                 <p className="reset-countdown mono">
                   Next puzzle in {fmtHoursMins(
@@ -2695,21 +2737,21 @@ function App() {
                   directly under the featured hero. It reads the same
                   `attempts` map the grid's badges read and launches through
                   launchGame like a card button, so it needs no state of its
-                  own. Hidden while attempts load — an all-unchecked strip
-                  that fills in a beat later reads as a glitch. Signed-out
+                  own. Renders THROUGH loading now (review round 1): an
+                  all-unchecked row is the placeholder that stops the page
+                  jumping when the attempts land, and its own loading guard
+                  no-ops the taps while they're in flight. Signed-out
                   visitors still get it: the chips sit unchecked and a tap
                   lands on the pre-game screen's sign-in CTA, same as the
                   grid's cards do. */}
-              {!loading && (
-                <DailyChecklist
-                  attempts={attempts}
-                  loading={loading}
-                  onPlay={(gameId) => {
-                    const g = GAMES.find((x) => x.id === gameId);
-                    if (g) launchGame(g, 'daily');
-                  }}
-                />
-              )}
+              <DailyChecklist
+                attempts={attempts}
+                loading={loading}
+                onPlay={(gameId) => {
+                  const g = GAMES.find((x) => x.id === gameId);
+                  if (g) launchGame(g, 'daily');
+                }}
+              />
               {authOk && (
                 <InProgressRow
                   items={inProgressItems}
@@ -2886,7 +2928,13 @@ function App() {
                       </React.Fragment>
                     )}
                     {pinNotice && <div className="home-pin-full">{pinNotice}</div>}
-                    <div className="home-section-title">All Games</div>
+                    <div className="home-section-title home-all-title">
+                      All Games
+                      {/* Poki/CrazyGames-style header: the count of what the
+                          selected chip shows sits at the right edge (pinned
+                          cards included — they match the same filter). */}
+                      <span className="home-pin-count">{ordered.length}</span>
+                    </div>
                     {/* #350 — type-to-filter above the chips, so the two
                         narrowing controls read as one row. It ANDs with the
                         active chip below and with the Pinned section above:
@@ -2910,7 +2958,11 @@ function App() {
                         // star anything, so a chip that always answered "no
                         // games" would be dead UI. Appears the moment the
                         // account is known, including at 0 stars.
-                        ...(authOk ? [{ id: 'favorites', label: 'Favorites' + (starredCount ? ` (${starredCount})` : '') }] : []),
+                        /* Review round 1: the chip stays visible when the daily load failed
+                           (dailyErr) — the viewer is presumably signed in, the
+                           API just didn't answer, so the backend hiccup must
+                           not hide a control the signed-in lobby carries. */
+                        ...((authOk || dailyErr) ? [{ id: 'favorites', label: 'Favorites' + (starredCount ? ` (${starredCount})` : '') }] : []),
                       ].map(f => (
                         <button
                           key={f.id}

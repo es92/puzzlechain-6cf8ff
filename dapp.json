@@ -531,6 +531,16 @@
       "expectText": "GAME OF THE DAY"
     },
     {
+      "name": "All Games header shows how many games the chip shows",
+      "path": "/",
+      "expectSelector": ".home-all-title .home-pin-count"
+    },
+    {
+      "name": "Game of the Day icon tile renders in dark mode",
+      "path": "/?theme=dark",
+      "expectSelector": "html[data-theme=\"dark\"] .gotd-hero .gotd-icon"
+    },
+    {
       "name": "Home shows the merged all-games grid",
       "path": "/",
       "expectText": "All Games"

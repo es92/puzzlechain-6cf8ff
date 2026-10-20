@@ -451,12 +451,35 @@ const INPUT_LABEL = { tap: '👆 Tap', drag: '✋ Drag', swipe: '👉 Swipe', ke
 // carries no leaderboard preview. Clicking anywhere routes through the
 // normal launch flow, so the pre-game / resume / locked machinery is
 // untouched.
+// Review round 1: the raw game colour (GA.*) is tuned against the light card
+// and its white Play label falls below AA in the dark look (sky #3D87C9
+// measured 3.81:1). --accent-deep is the same hex with every channel pulled
+// toward black; at 0.78 every GA colour clears 4.5:1 with white (sky 6.1,
+// amber 4.7, lime 4.9). Raw hex in, raw hex out — no palette key, no var()
+// concatenation.
+function gotdDeepColor(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  return '#' + [1, 3, 5].map((i) =>
+    Math.round(parseInt(m[1].slice(i - 1, i + 1), 16) * 0.78)
+      .toString(16).padStart(2, '0')).join('');
+}
+
 function GotdHero({ game, attempt, authOk, nextResetUtc, offset, onReset, onPlay }) {
   const countdown = useCountdown(nextResetUtc, offset, onReset);
   const finished = !!(attempt && attempt.finishedAt);
   const inProgress = !!attempt && !finished;
   return (
-    <div className="gotd-hero" style={{ '--accent': game.tagColor }}>
+    <div className="gotd-hero" style={{
+      '--accent': game.tagColor,
+      /* NYT-Games-style colour wash: the panel takes on the featured game's
+         colour (raw hex from GA, so appending an alpha byte is fine here —
+         the never-concat rule is about C.* tokens, which are var() strings). */
+      '--accent-tint': game.tagColor + '24',
+      '--accent-wash': game.tagColor + '12',
+      '--accent-line': game.tagColor + '4d',
+      '--accent-deep': gotdDeepColor(game.tagColor),
+    }}>
       <div className="gotd-label mono">🎯 GAME OF THE DAY</div>
       <div className="gotd-main" onClick={onPlay}>
         <div className="gotd-icon">{game.icon}</div>
@@ -498,7 +521,7 @@ function InProgressRow({ items, onOpenDaily, onOpenRoom }) {
         {items.map((it) => {
           if (it.type === 'daily') {
             return (
-              <div key={'d-' + it.game.id} className="inprog-card" onClick={() => onOpenDaily(it.game)}>
+              <div key={'d-' + it.game.id} className="inprog-card" style={{ '--accent-tint': it.game.tagColor + '24' }} onClick={() => onOpenDaily(it.game)}>
                 <div className="ip-icon">{it.game.icon}</div>
                 <div className="ip-name">{it.game.name}</div>
                 <div className="ip-sub resume">▶ Resume run</div>
@@ -511,7 +534,7 @@ function InProgressRow({ items, onOpenDaily, onOpenRoom }) {
           // created and left simply vanished from your side of the app.
           if (it.room.waiting) {
             return (
-              <div key={'r-' + it.room.id} className="inprog-card room" onClick={() => onOpenRoom(it.room)}>
+              <div key={'r-' + it.room.id} className="inprog-card room" style={{ '--accent-tint': it.game.tagColor + '24' }} onClick={() => onOpenRoom(it.room)}>
                 <div className="ip-icon">{it.game.icon}</div>
                 <div className="ip-name">{it.game.name}</div>
                 <div className="ip-sub">⏳ Waiting for opponent</div>
@@ -520,7 +543,7 @@ function InProgressRow({ items, onOpenDaily, onOpenRoom }) {
             );
           }
           return (
-            <div key={'r-' + it.room.id} className="inprog-card room" onClick={() => onOpenRoom(it.room)}>
+            <div key={'r-' + it.room.id} className="inprog-card room" style={{ '--accent-tint': it.game.tagColor + '24' }} onClick={() => onOpenRoom(it.room)}>
               <div className="ip-icon">{it.game.icon}</div>
               <div className="ip-name">{it.game.name}</div>
               <div className={'ip-sub' + (it.room.myTurn ? ' turn' : '')}>
@@ -616,6 +639,7 @@ function RecentlyPlayedRow({ items, onOpen, offset }) {
             <button
               key={p.gameId}
               className="inprog-card recent-card"
+              style={{ '--accent-tint': g.tagColor + '24' }}
               aria-label={'Replay ' + g.name}
               {...tapProps(() => onOpen(p.gameId))}
             >
