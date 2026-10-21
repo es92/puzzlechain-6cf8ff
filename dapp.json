@@ -656,6 +656,16 @@
       "expectSelector": ".nav-settings-btn"
     },
     {
+      "name": "Nav carries a dark-mode toggle in light theme",
+      "path": "/?theme=light",
+      "expectSelector": "html[data-theme=\"light\"] .nav-theme-btn[data-theme-next=\"dark\"]"
+    },
+    {
+      "name": "Nav toggle offers light while dark",
+      "path": "/?theme=dark",
+      "expectSelector": "html[data-theme=\"dark\"] .nav-theme-btn[data-theme-next=\"light\"]"
+    },
+    {
       "name": "Dark theme renders the daily lobby",
       "path": "/?theme=dark",
       "expectText": "All Games",

@@ -2932,8 +2932,10 @@ ${emitTapHighlightRules()}
   margin-bottom: 0.5rem;
 }
 /* Icon-only nav gear. Deliberately NOT in the mobile-hide rule that hides
-   .nav-friends-btn — the theme control must stay reachable on phones. */
-.nav-settings-btn {
+   .nav-friends-btn — the theme control must stay reachable on phones. The
+   theme toggle shares the gear's look on purpose: same outline, size and
+   muted icon colour, so the pair reads as one control group. */
+.nav-settings-btn, .nav-theme-btn {
   background: transparent;
   border: 1px solid ${C.border};
   color: ${C.muted};
@@ -2943,7 +2945,8 @@ ${emitTapHighlightRules()}
   line-height: 1;
   cursor: pointer;
 }
-.nav-settings-btn:hover { color: ${C.text}; border-color: ${C.accent}; }
+.nav-settings-btn:hover, .nav-theme-btn:hover { color: ${C.text}; border-color: ${C.accent}; }
+.nav-theme-btn[data-pressed] { border-color: ${C.accent}; color: ${C.text}; }
 .cg-toggle {
   width: 2.8rem;
   height: 1.5rem;

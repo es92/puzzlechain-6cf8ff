@@ -74,6 +74,31 @@ function ShareButton({ text }) {
   );
 }
 
+/* One-tap light/dark switch for the top bar, beside the Settings gear. Reads
+   `resolved` (not `pref`) so it offers the opposite of what is actually
+   showing even while the pref is 'system', and `setPref(next)` pins that
+   choice through the same applyTheme path Settings uses — ThemeChoice, the
+   canvas boards and the pre-paint script all follow for free. Its own
+   useTheme() subscription keeps the icon in step when the theme changes from
+   Settings, ?theme= or an OS flip. */
+function NavThemeToggle() {
+  const { resolved, setPref } = useTheme();
+  const next = resolved === 'dark' ? 'light' : 'dark';
+  const label = next === 'dark' ? 'Switch to dark theme' : 'Switch to light theme';
+  return (
+    <button
+      type="button"
+      className="nav-theme-btn"
+      title={label}
+      aria-label={label}
+      data-theme-next={next}
+      {...tapProps(() => { setPref(next); cgSound('click'); })}
+    >
+      {next === 'dark' ? '🌙' : '☀'}
+    </button>
+  );
+}
+
 function App() {
   const [screen, setScreen] = useState(() => {
     // Support ?screen=friends / ?screen=session deep links for testing.
@@ -2613,6 +2638,7 @@ function App() {
           )}
           {/* Outside the authOk guard on purpose: a signed-out visitor should
               still be able to pick a theme. */}
+          <NavThemeToggle />
           <button
             className="nav-settings-btn"
             title="Settings"
