@@ -571,6 +571,21 @@ the current day count. The `demo=streak`/`demo=badges` fixtures seed
 prior days via `seedFeaturedStreakDays` (featured-game attempts + their
 `daily_featured` rows) so they hold under the new rule.
 
+The **all-time best daily streak** (#362) lives in
+`user_stats_snapshot.best_daily_streak` — a lazily backfilled high-water
+mark, not a recomputed value. NULL means "not backfilled yet": the first
+`GET /api/daily` after the migration runs `computeBestStreak` (same
+counted-day rule as `computeStreak`, shared `STREAK_DAYS_WHERE`, no
+60-day cap, longest consecutive run) once and stores it, so a player
+with history gets a real best straight away and one with none stores 0.
+`finalizeDailyAttempt` bumps it with `bumpBestStreak` (GREATEST upsert,
+so racing finishes are order-independent) on every finish; it only ever
+rises. It is returned as `bestStreak` from `/api/daily` and `/finish`
+and shown beside the current streak in the card's gold pill (#313's
+`card-streak`), with `cardProps` passing `Math.max(bestStreak, streak)`
+so an optimistic bump never under-shoots it. Streak rules themselves
+are untouched.
+
 The streak multiplies points via **tiers**, defined once in
 `STREAK_TIERS` (`public/src/05-core-lib.jsx`) and applied client-side in
 `streakMultiplier(streak)`:
@@ -1509,6 +1524,17 @@ could never say what it means, and "Story picker calls each step a level"
 reasons nothing in its own proposal could explain. Both now delete the bands
 above the depth they are claiming before inserting. Any new fixture that seeds
 a COUNT of something owes the same treatment.
+
+**The streak fixtures COUNT too, and they disagree.** `demo=streak` wants a
+10-day streak; `demo=badges` wants 60. Both write through
+`seedFeaturedStreakDays`, which now asserts its claim: days 1..n are
+force-finished (DO UPDATE, the demo=resume idiom) and the viewer's finished
+attempts OLDER than n days are deleted, so the streak is exactly n regardless
+of which fixture or earlier suite seeded deeper. The runner account on the
+shared staging DB carried badges' 60 days across suites, and the streak-pill
+checks (`data-streak='10'`, #313 and #362) failed whenever a badges run landed
+before their route. Either fixture re-seeds its own window on its next run, so
+the two stay order-independent.
 
 **"Today is left open" has to be MADE true, not assumed.** `demo=streak` and
 `demo=badges` both promise a long streak with today still playable, and neither

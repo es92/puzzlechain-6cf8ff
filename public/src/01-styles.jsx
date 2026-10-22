@@ -4331,6 +4331,9 @@ ${emitTapHighlightRules()}
 }
 .card-streak .cs-flame { font-size: 0.7rem; line-height: 1; }
 .card-streak .cs-days { color: ${C.gold}; opacity: 0.75; }
+/* #362 — the "best N" figure rides in the same pill: same gold and dimmed
+   style as .cs-days, and nowrap so the label never breaks mid-pill. */
+.card-streak .cs-best { color: ${C.gold}; opacity: 0.75; white-space: nowrap; }
 
 /* The footer row that carries the tag and (when the card has a daily) the
    streak pill. align-items: baseline keeps the two pill shapes on one line

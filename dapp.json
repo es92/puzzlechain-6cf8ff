@@ -120,6 +120,18 @@
       ]
     },
     {
+      "name": "Daily streak pill shows the best streak (#362)",
+      "path": "/?demo=streak&tab=daily",
+      "expectSelector": ".card .card-streak[data-streak='10'] .cs-best",
+      "visual": true,
+      "id": "daily-cards.streak-best",
+      "impact": [
+        "public/src/29-cards.jsx",
+        "public/src/30-app-root.jsx",
+        "public/src/01-styles.jsx"
+      ]
+    },
+    {
       "name": "Masthead tagline renders",
       "path": "/",
       "expectText": "Classic games, fresh every day."

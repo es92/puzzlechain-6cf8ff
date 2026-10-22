@@ -356,17 +356,20 @@ const cardMyScoreBit = (card, myScores) => {
   return null;
 };
 
-function GameCard({ card, attempts, bests, storyProgress, myScores, loading, onPlay, pinned, onTogglePin, pinDisabled, streak, favorited, onToggleFavorite }) {
+function GameCard({ card, attempts, bests, storyProgress, myScores, loading, onPlay, pinned, onTogglePin, pinDisabled, streak, bestStreak, favorited, onToggleFavorite }) {
   const dailyId = cardDailyId(card);
   const attempt = dailyId ? attempts[dailyId] : null;
   const finished = !!(attempt && attempt.finishedAt);
   const inProgress = !!(attempt && !attempt.finishedAt);
+  // #362 — the all-time best daily streak, never below the current one so a
+  // streaking player reads "you are at your record" when they tie it.
+  const best = Math.max(bestStreak || 0, streak || 0);
 
   // State line, per recommendation 04: the card reports where you stand
   // instead of spending its width on buttons that repeat the mode labels.
   const bits = [];
   if (dailyId) bits.push(finished ? 'Daily ✓' : inProgress ? 'Daily ▶' : 'Daily · new');
-  // #313 — a signed-in player's current streak rides on every card that offers
+  // #313, extended by #362 — a signed-in player's current streak rides on every card that offers
   // a daily (the merged cards included: cardDailyId covers them). Zero stays
   // off the card: a 0-day streak is not information the card needs, and the
   // nav stat still shows it.
@@ -428,10 +431,13 @@ function GameCard({ card, attempts, bests, storyProgress, myScores, loading, onP
           {card.tag}
         </span>
         {dailyId && streak > 0 && (
-          <span className="card-streak mono" data-streak={streak} title={`${streak}-day streak`}>
+          <span className="card-streak mono" data-streak={streak} data-best={best} title={`${streak}-day streak · best ${best} day${best === 1 ? '' : 's'}`}>
             <span className="cs-flame" aria-hidden="true">🔥</span>
             <span>{streak}</span>
             <span className="cs-days">d</span>
+            {/* #362 — the record the current streak is chasing, in the same
+                gold pill; "best N" shows even when it equals the streak. */}
+            <span className="cs-best">· best {best}</span>
           </span>
         )}
       </div>
