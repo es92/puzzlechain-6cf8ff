@@ -47,7 +47,26 @@ let SERVER_DAILY_SEEDS = {};
 // (hint counters, autosave) consult it so a guest run never fires requests
 // that can only 401.
 let GUEST_MODE = false;
+
+/* #367 — a PRACTICE RUN's random seed, opened and closed by the shell. Same
+   shape as the arcade run seed below: exactly one run is live at a time, so a
+   module-scope value lets every daily generator pick it up (dailyRng,
+   dailySeedFor, and the two games that read serverDailySeed directly) without
+   any game component learning about practice. `?practice=1` and "Play again for
+   fun" leave it CLOSED so they keep replaying today's board; only the pre-game
+   screen's Practice button (and `?practice=random`) open it. */
+let _practiceRunSeed = null;
+function beginPracticeRun(seed) {
+  _practiceRunSeed = Number.isFinite(seed)
+    ? (seed >>> 0)
+    : (Math.floor(Math.random() * 4294967295) >>> 0);
+  return _practiceRunSeed;
+}
+function practiceRunSeed() { return _practiceRunSeed; }
+function endPracticeRun() { _practiceRunSeed = null; }
+
 function serverDailySeed(gameId) {
+  if (_practiceRunSeed != null) return _practiceRunSeed;
   const s = SERVER_DAILY_SEEDS[gameId];
   return Number.isFinite(s) ? s : null;
 }

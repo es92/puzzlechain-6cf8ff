@@ -1053,7 +1053,7 @@ function GameBoards({ game, onClose }) {
   );
 }
 
-function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offset, onReset, onPlay, onHowTo, onChat,
+function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offset, onReset, onPlay, onPractice, onHowTo, onChat,
                          playMode, storyProgress, storyBand, onStoryBand, arcadeBandId, onArcadeBand, arcadeBest,
                          onReplayRun, dailyBandId, onDailyBand }) {
   /* `?boards=1` opens the panel at mount. The boards are behind a tap, and a
@@ -1226,6 +1226,16 @@ function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offs
       <button className="primary-btn pregame-play" onClick={onPlay}>
         {resuming ? '▶ Resume' : !authOk && game.daily ? 'Play as guest' : 'Play'}
       </button>
+      {/* #367 — a RANDOM board, not today's deal: the daily is not given away
+          and nothing is recorded. Secondary outline, the same look the result
+          card gives "Play again for fun". Daily only: story and arcade deal a
+          board you can already retry. */}
+      {isDaily && onPractice && (
+        <button className="primary-btn review-btn pregame-practice tappable"
+          {...tapProps(() => onPractice(activeBand))}>
+          🎲 Practice run <span className="practice-note">(not scored)</span>
+        </button>
+      )}
       {game.daily && !authOk && (
         <div className="pregame-signedout">
           Playing as a guest — finish today's board and sign in before midnight UTC

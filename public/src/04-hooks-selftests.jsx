@@ -665,6 +665,32 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* #367 — a practice run's seed must reach EVERY daily generator, and must
+     stop reaching them the moment the run ends. serverDailySeed is the single
+     choke point (dailyRng/dailySeedFor build on it, and Tile Match and Mahjong
+     read it directly), so this is the one place the scoping can be checked. */
+  check('practice-seed-scoped', () => {
+    const recorded = dailySeedFor(0, 'sudoku');
+    try {
+      beginPracticeRun(12345);
+      if (serverDailySeed('sudoku') !== 12345) {
+        throw new Error('serverDailySeed ignored the practice seed (' + serverDailySeed('sudoku') + ')');
+      }
+      if (dailySeedFor(0, 'sudoku') === recorded) {
+        throw new Error('dailySeedFor still deals today\'s board during a practice run');
+      }
+      if (dailySeedFor(0, 'sudoku', 'hard') === dailySeedFor(0, 'sudoku')) {
+        throw new Error('the practice seed swallowed the band mixing');
+      }
+    } finally {
+      endPracticeRun();
+    }
+    if (dailySeedFor(0, 'sudoku') !== recorded) {
+      throw new Error('endPracticeRun left the practice seed open');
+    }
+    return true;
+  });
+
   /* #214 — a Match 3 deal must contain a MULTIPLE OF THREE of every type (a
      match is three of a kind, so anything else strands tiles), and the puzzle's
      own target must be reachable from the deal it is given. The old deal put

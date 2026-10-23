@@ -4012,12 +4012,20 @@ app.get('/api/daily', async (req, res) => {
              daily id, and the state line prefers daily points over best, so
              the demo=dualmode finished run (610 pts, today) outranked the
              arcade best. This is the "card WITHOUT a daily" assertion, so its
-             daily row must go — today's OTHER rows (locked sudoku, homegrid
-             klondike/spider, dualmode bouncedaily, the profile's recent list
-             and the lobby's PLAYED indicator) are deliberately left alone.
+             daily row must go. Today's rows for OTHER games (homegrid
+             klondike/spider, dualmode bouncedaily, review nonogram, the
+             profile's recent list and the lobby's PLAYED indicator) are
+             deliberately left alone.
 
-         Past UTC dates only, so it never collides with demo=locked /
-         demo=streak, which finish today's rows.
+         TODAY's rows for the three games below go too. A past-date sweep alone
+         is not enough: /api/my/scores SUMS today as well, so a demo=locked
+         visit that finished sudoku (980) left the Sudoku card reading
+         "+1,300 pts" where the check expects its 320 — and no later past sweep
+         can undo that. Which routes ran first is not this fixture's to rely
+         on. demo=locked re-arms its own row on its OWN request, so taking it
+         away here costs that check nothing; the "Completed today" checks carry
+         their own demo=locked, and the pre-game / story routes re-deal today
+         anyway.
 
          Staging carries ONE database across every check run and never
          resets, so this fixture has to ASSERT its state, not add to it —

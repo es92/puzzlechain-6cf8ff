@@ -1226,6 +1226,10 @@ ${emitTapHighlightRules()}
 }
 .pregame-play { width: 100%; }
 .pregame-play:disabled { opacity: 0.5; cursor: default; }
+/* #367 — the practice run sits directly under Play, wearing the result card's
+   "this does not count" look (the .review-btn secondary). Its own rule only
+   stops review-btn's bottom margin doubling up with .pregame-actions. */
+.pregame-practice { margin-top: 0.6rem; margin-bottom: 0; }
 .pregame-signedout { font-size: 0.78rem; color: ${C.muted}; margin-top: 0.6rem; }
 /* #240 — "How to play" and the game's chat room were trailing text links
    under the Play button: no border, no background, 0.3rem of padding and a

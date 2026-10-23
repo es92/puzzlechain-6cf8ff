@@ -1285,6 +1285,18 @@ definite width; the caps (`max-width`) still centre the board.
   `handleWin`/`handleLose` before any endpoint, and suppresses `dailyRunLog`,
   `savedProgress` and `onSaveProgress`. That early return is the only thing
   guaranteeing "play again for fun" can't move a streak or a leaderboard.
+  **Practice has two seeds (#367).** "Play again for fun" and `?practice=1`
+  replay TODAY'S deal; the pre-game screen's "🎲 Practice run" (and
+  `?practice=random`) deals a fresh RANDOM board so warming up does not give
+  the daily away. `serverDailySeed` returns `_practiceRunSeed` while one is
+  open (`beginPracticeRun`/`practiceRunSeed`/`endPracticeRun` in
+  `05-core-lib.jsx`), which is what makes it reach every generator — including
+  Tile Match and Mahjong, which read it directly, and Daily Cipher, which
+  draws a random block in `cwRoundsForMode`. **The shell must close it on
+  every non-practice entry point** (`startRun`, `launchGame`, `backToLobby`,
+  `openOpponentScreen`, `replayArcadeRun`, and `startPractice` without
+  `fresh`), plus a `!practiceMode` effect for popstate; otherwise a later
+  board draws from a seed that belongs to a run that is over.
 - **Daily Cipher's rotation is a partition, not a sample.** Each theme is
   shuffled once with a fixed seed and cut into 5-word blocks; day N takes block
   `(N/4) mod blocks`. That gives a **sliding** no-repeat guarantee over

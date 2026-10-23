@@ -424,6 +424,24 @@ function cwRoundsForMode(playMode, band, offset) {
     // the SAME partition, steered by average word length. The rotation, the
     // theme and the un-banded block are all untouched.
     const dailyBand = cwDailyBandFor(band);
+    /* #367 — a practice run draws a block from its own random seed, so the
+       practice words are never today's words. Same draw as the arcade branch
+       below, including its band steering; without a practice seed the daily
+       is byte-identical to before. */
+    const pSeed = practiceRunSeed();
+    if (pSeed != null) {
+      const prng = mulberry32(pSeed);
+      if (dailyBand === 'easy' || dailyBand === 'hard') {
+        let best = null, bestAvg = -1;
+        for (let k = 0; k < 6; k++) {
+          const blk = cwBlockAt(Math.floor(prng() * CW_THEMES.length), Math.floor(prng() * 1e6));
+          const avg = blk.words.reduce((a, w) => a + w.length, 0) / blk.words.length;
+          if (bestAvg < 0 || (dailyBand === 'easy' ? avg < bestAvg : avg > bestAvg)) { best = blk; bestAvg = avg; }
+        }
+        return best;
+      }
+      return cwBlockAt(Math.floor(prng() * CW_THEMES.length), Math.floor(prng() * 1e6));
+    }
     return {
       theme: cwThemeForDay(cwDayNum(offset)),
       words: dailyBand ? cwBandBlockFor(cwDayNum(offset), dailyBand) : cwDailyRounds(offset),

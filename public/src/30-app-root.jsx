@@ -226,6 +226,11 @@ function App() {
     new URLSearchParams(window.location.search).get('practice') === '1'
   );
   const [practiceResult, setPracticeResult] = useState(null);
+  /* #367 — true when this run was dealt a RANDOM board from the pre-game
+     screen's Practice button (or `?practice=random`), false for a replay of
+     today's deal ("Play again for fun", `?practice=1`). Only changes the card's
+     wording and where "Another practice run" draws its seed from. */
+  const [practiceFresh, setPracticeFresh] = useState(false);
   // #122 — is the locked-day review board on show (vs the result card)?
   const [lockedReview, setLockedReview] = useState(() =>
     new URLSearchParams(window.location.search).get('review') === '1'
@@ -305,6 +310,7 @@ function App() {
      screen the back button and history have to know about. */
   const openOpponentScreen = (g) => {
     if (!g) return;
+    endPracticeRun();   // #367 — never let a practice seed reach a real run
     setCurrentGame(g);
     setPreLaunchGame(g);
     setClassicGameMode(null);
@@ -381,6 +387,10 @@ function App() {
     selectedUserId: navPrimitive(selectedUserId),
     reviewMode: !!reviewMode,
     practiceMode: !!practiceMode,
+    /* #367 — a random practice board is part of "where am I": back/forward has
+       to land on the same board, not on today's. The seed is a primitive. */
+    practiceFresh: !!practiceFresh,
+    practiceSeed: practiceFresh ? navPrimitive(practiceRunSeed()) : null,
     /* #176 — the play mode is part of "where am I". Two entries for the same
        game in different modes are different places, and without this, going
        back from an arcade run to the pre-game screen restored the screen but
@@ -463,6 +473,10 @@ function App() {
       setSelectedUserId(s.selectedUserId || null);
       setReviewMode(!!s.reviewMode);
       setPracticeMode(!!s.practiceMode);
+      setPracticeFresh(!!s.practiceFresh);
+      if (s.practiceMode && s.practiceFresh && Number.isFinite(s.practiceSeed)) {
+        beginPracticeRun(s.practiceSeed);
+      }
       setPlayMode(isPlayMode(s.playMode) ? s.playMode : null);
       setStoryBand(Number.isFinite(s.storyBand) ? s.storyBand : 0);
       setArcadeBandId(ARCADE_BAND_IDS.indexOf(s.arcadeBandId) !== -1 ? s.arcadeBandId : 'normal');
@@ -491,6 +505,11 @@ function App() {
      locking the document is what makes "nothing scrolls during play" true for
      all 33 games. Released the moment a result screen appears (that scrolls). */
   useScrollLock((screen === 'game' && !!currentGame && !winData && !loseData && !practiceResult) || !!advance);
+
+  /* #367 — belt and braces for the practice seed: anything that clears
+     practiceMode without going through startRun/launchGame/backToLobby
+     (a popstate, say) closes it too, so no later board can draw from it. */
+  useEffect(() => { if (!practiceMode) endPracticeRun(); }, [practiceMode]);
 
   /* #185 — Escape leaves the countdown (falling back to the ordinary result
      card), and any unmount clears every pending timer so nothing can start a
@@ -854,6 +873,7 @@ function App() {
   };
 
   const launchGame = (game, mode) => {
+    endPracticeRun(); // #367 — never let a practice seed reach a real run
     allowProgressSave(game.id); // a new run lifts any prior finish guard
     /* #176 — `mode` is the play mode the card button asked for. It is
        authoritative over the registry's legacy `daily` flag: Block Fit is a
@@ -919,6 +939,7 @@ function App() {
      rather than as a board: history costs a few hundred bytes per run. */
   const replayArcadeRun = (game, run) => {
     if (!game || !run) return;
+    endPracticeRun(); // #367 — the arcade replay has its own seed
     setPlayMode('arcade');
     setArcadeBandId(run.band);
     setArcadeReplaySeed(run.seed);
@@ -941,6 +962,7 @@ function App() {
     const playMode = (over && over.mode) || playModeRef.current;
     const arcadeBandId = (over && over.arcadeBand) || arcadeBandRef.current;
     const dailyBandId = (over && over.dailyBand) || dailyBandRef.current;
+    endPracticeRun(); // #367 — a claimed/resumed run is always the real board
     allowProgressSave(game.id); // claiming/resuming a run lifts the finish guard
     // Cached and request-deduped, so this is free after the first open.
     if (CORPUS_GAMES.has(game.id)) await loadCorpus(game.id);
@@ -1201,6 +1223,13 @@ function App() {
     // claim, so it works whether or not the day has been played.
     if (params.get('practice') === '1' && g.daily) {
       startPractice(g);
+      setHowToGame(null);
+      return;
+    }
+    // #367 — ?practice=random deals a fresh random board, which is otherwise
+    // only reachable by tapping the pre-game Practice button that checks can't.
+    if (params.get('practice') === 'random' && g.daily) {
+      startPractice(g, { fresh: true });
       setHowToGame(null);
       return;
     }
@@ -2050,6 +2079,7 @@ function App() {
      'classic') is a home-grid filter chip, so it routes to setHomeFilter.
      Writing it to lobbyTab (as before) was a no-op nothing ever read. */
   const backToLobby = (tab) => {
+    endPracticeRun(); // #367 — a practice seed only lives as long as its run
     setScreen('lobby');
     setCurrentGame(null);
     setReviewMode(false);
@@ -2096,16 +2126,26 @@ function App() {
      today's puzzle, not a random one) and a bumped resetKey, but with
      practiceMode on: handleWin/handleLose bail out before any endpoint, and no
      /start claim happens because we never call startRun. */
-  const startPractice = async (game) => {
+  const startPractice = async (game, opts) => {
     if (!game) return;
     // Same rule as startRun: a corpus game must not deal from its fallback
     // just because practice skipped the screen that warms the table.
     if (CORPUS_GAMES.has(game.id)) await loadCorpus(game.id);
+    /* #367 — `fresh` deals a RANDOM board (the pre-game Practice button), so
+       the daily is not given away. Every other caller replays today's deal and
+       must CLOSE any practice seed a previous run left open. */
+    const fresh = !!(opts && opts.fresh);
+    if (fresh) beginPracticeRun(); else endPracticeRun();
+    setPracticeFresh(fresh);
     // Replay the deal the attempt was actually played on (#331). With no
     // attempt (e.g. the ?practice=1 deep link) Normal is the honest default —
-    // it is the deal the day has always been.
+    // it is the deal the day has always been. A fresh run uses the band the
+    // pre-game screen is showing (the picker locks to the claimed band).
     const att = attempts[game.id];
-    setPracticeBandId(att && isDailyBand(att.band) ? att.band : 'normal');
+    setPracticeBandId(opts && isDailyBand(opts.band)
+      ? opts.band
+      : (att && isDailyBand(att.band) ? att.band : 'normal'));
+    setPlayMode('daily');
     setCurrentGame(game);
     setPracticeMode(true);
     setPracticeResult(null);
@@ -3126,6 +3166,8 @@ function App() {
             offset={offset}
             onReset={onReset}
             onPlay={() => startRun(currentGame)}
+            /* #367 — a fresh random board, using the band the picker shows. */
+            onPractice={currentGame.daily ? (band) => startPractice(currentGame, { fresh: true, band }) : null}
             playMode={playMode}
             storyProgress={storyProgress}
             storyBand={storyBand}
@@ -3255,7 +3297,7 @@ function App() {
           obvious, because the board looks exactly like the scored one. Pinned
           rather than in-flow so it needs no cooperation from a shell. */}
       {screen === 'game' && practiceMode && !winData && !loseData && !practiceResult && !advance && (
-        <div className="practice-ribbon pinned">🎲 Practice — not scored</div>
+        <div className="practice-ribbon pinned" data-practice={practiceFresh ? 'random' : 'today'}>🎲 Practice — not scored</div>
       )}
 
       {/* #185 — between-bands overlay. A sibling of .game-body, like the
@@ -3787,7 +3829,12 @@ function App() {
             <div className="trophy">🎲</div>
             <h2>{practiceResult.won ? 'Solved — practice run' : 'Practice run over'}</h2>
             <div className="sub">{currentGame && currentGame.name}</div>
-            <div className="practice-ribbon">Not scored — your real result for today stands</div>
+            {/* #367 — a random board says so; today's replay keeps its line. */}
+            <div className="practice-ribbon">
+              {practiceFresh
+                ? "Not scored · random board · today's daily is untouched"
+                : 'Not scored — your real result for today stands'}
+            </div>
             <div className="score-breakdown">
               <div className="score-row">
                 <span className="k">Practice score</span>
@@ -3810,7 +3857,8 @@ function App() {
                 👁 View board
               </button>
             )}
-            <button className="primary-btn review-btn tappable" {...tapProps(() => startPractice(currentGame))}>
+            <button className="primary-btn review-btn tappable"
+              {...tapProps(() => startPractice(currentGame, practiceFresh ? { fresh: true, band: practiceBandId } : undefined))}>
               🎲 Another practice run
             </button>
             <button className="primary-btn tappable" {...tapProps(() => backToLobby())}>Back to Lobby</button>
