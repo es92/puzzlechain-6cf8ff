@@ -33,5 +33,7 @@ snakesladders-v2/04-rank.jsx
 snakesladders-v2/03-game.jsx
 28-registry.jsx
 29-cards.jsx
+29a-deck-art.jsx
+29b-flip-deck.jsx
 30-app-root.jsx
 31-mount.jsx

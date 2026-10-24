@@ -22,7 +22,9 @@ function AccountChip({ loading, authOk, user, onOpen }) {
       onClick={onOpen}
     >
       <span className="avatar mono">{initial}</span>
-      <span className="who">
+      {/* The bar shows the avatar alone (flip-deck redesign); the name stays
+          in the accessible label and the tooltip. */}
+      <span className="who sr-only">
         <span className="uname">{name}</span>
       </span>
     </button>
@@ -132,75 +134,6 @@ function Leaderboard({ gameId, solved, defaultBand }) {
   );
 }
 
-/* ============================================================
-   Today's Top Scores — everyone who finished today's GAME OF THE DAY,
-   ranked by score (fastest time breaks ties). The server resolves the
-   featured game and returns its id so the board can name it. Reuses
-   the per-game leaderboard styles. Tapping a row opens that player's
-   profile via onSelectUser.
-   ============================================================ */
-function TodayChampions({ onSelectUser }) {
-  const [state, setState] = useState({ loading: true });
-  const [scope, setScope] = useState(lbInitialScope);
-
-  useEffect(() => {
-    let alive = true;
-    setState({ loading: true });
-    (async () => {
-      const { ok, body } = await api(`/api/daily/leaderboard/today${scope === 'friends' ? '?scope=friends' : ''}`);
-      if (!alive) return;
-      if (ok && body) setState({ loading: false, ...body });
-      else setState({ loading: false, entries: [], me: null, total: 0, error: true });
-    })();
-    return () => { alive = false; };
-  }, [scope]);
-
-  const featured = state.gameId ? GAMES.find(g => g.id === state.gameId) : null;
-  const gameLabel = featured ? featured.name : 'Game of the Day';
-  const title = (
-    <div className="lboard-title">
-      Today's Top Scores
-      <span className="lboard-count">🎯 {featured ? `${featured.icon} ` : ''}{gameLabel}{state.total > 0 ? ` · ${state.total} finished` : ''}</span>
-    </div>
-  );
-
-  if (state.loading) {
-    return <div className="lboard champions"><div className="lboard-title">Today's Top Scores</div><LbScopeTabs scope={scope} onChange={setScope} /><div className="lboard-empty">Loading…</div></div>;
-  }
-
-  const entries = state.entries || [];
-  const me = state.me || null;
-  const meVisible = me && entries.some(e => e.isCurrentUser);
-  const row = (e, pinned) => (
-    <div
-      key={pinned ? 'me-pinned' : e.rank}
-      className={`lrow${e.isCurrentUser ? ' me' : ''}${pinned ? ' pinned' : ''}${onSelectUser ? ' clickable' : ''}`}
-      onClick={onSelectUser && e.userId ? () => onSelectUser(e.userId) : undefined}
-    >
-      <span className="lrank mono">#{e.rank}</span>
-      <span className="lname">{e.username}{e.isCurrentUser ? ' (you)' : ''}</span>
-      <span className="ltime mono">{e.score} pts</span>
-      <span className="lsteps mono">{lbFmtTime(e.timeSecs)}</span>
-    </div>
-  );
-
-  return (
-    <div className="lboard champions">
-      {title}
-      <LbScopeTabs scope={scope} onChange={setScope} />
-      {entries.length === 0 ? (
-        <div className="lboard-empty">
-          {scope === 'friends' ? LB_FRIENDS_EMPTY : `No one has finished today's ${gameLabel} yet — be the first!`}
-        </div>
-      ) : (
-        <div className="lboard-rows">
-          {entries.map(e => row(e, false))}
-          {me && !meVisible && row(me, true)}
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ============================================================
    Rating ladder (phase 4) — Elo standings for the head-to-head
@@ -457,53 +390,8 @@ const INPUT_LABEL = { tap: '👆 Tap', drag: '✋ Drag', swipe: '👉 Swipe', ke
 // toward black; at 0.78 every GA colour clears 4.5:1 with white (sky 6.1,
 // amber 4.7, lime 4.9). Raw hex in, raw hex out — no palette key, no var()
 // concatenation.
-function gotdDeepColor(hex) {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return hex;
-  return '#' + [1, 3, 5].map((i) =>
-    Math.round(parseInt(m[1].slice(i - 1, i + 1), 16) * 0.78)
-      .toString(16).padStart(2, '0')).join('');
-}
 
-function GotdHero({ game, attempt, authOk, nextResetUtc, offset, onReset, onPlay }) {
-  const countdown = useCountdown(nextResetUtc, offset, onReset);
-  const finished = !!(attempt && attempt.finishedAt);
-  const inProgress = !!attempt && !finished;
-  return (
-    <div className="gotd-hero" style={{
-      '--accent': game.tagColor,
-      /* NYT-Games-style colour wash: the panel takes on the featured game's
-         colour (raw hex from GA, so appending an alpha byte is fine here —
-         the never-concat rule is about C.* tokens, which are var() strings). */
-      '--accent-tint': game.tagColor + '24',
-      '--accent-wash': game.tagColor + '12',
-      '--accent-line': game.tagColor + '4d',
-      '--accent-deep': gotdDeepColor(game.tagColor),
-    }}>
-      <div className="gotd-label mono">🎯 GAME OF THE DAY</div>
-      <div className="gotd-main" onClick={onPlay}>
-        <div className="gotd-icon">{game.icon}</div>
-        <div className="gotd-info">
-          <div className="gotd-name">{game.name}</div>
-          <div className="gotd-desc">{game.desc}</div>
-          <div className="gotd-meta mono">
-            Next puzzle in {countdown} · 🌍 same deal for everyone · 🔥 keeps your streak
-          </div>
-        </div>
-        <button className="primary-btn gotd-play" disabled={finished}>
-          {finished ? `🔒 +${attempt.score != null ? attempt.score : 0}` : inProgress ? '▶ Resume' : 'Play'}
-        </button>
-      </div>
-      {authOk === false && (
-        <div className="gotd-signedout">Play today's deal free as a guest — sign in to join the board and keep a streak.</div>
-      )}
-    </div>
-  );
-}
 
-// Home "in progress" row: resumable daily runs (claimed, unfinished attempts)
-// and online matches where it's your turn. Horizontal card strip; each card
-// re-enters through the normal launch/resume path.
 // Hours until an active room's 48h turn timer forfeits it, from the server's
 // lastMoveAt + turnTimeoutHours. Null when the room carries no timer info.
 function roomExpiresInHours(room) {
@@ -512,150 +400,9 @@ function roomExpiresInHours(room) {
   return Math.max(0, Math.ceil(ms / 3600000));
 }
 
-function InProgressRow({ items, onOpenDaily, onOpenRoom }) {
-  if (!items.length) return null;
-  return (
-    <div className="inprog-row-wrap">
-      <div className="home-section-title">In progress</div>
-      <div className="inprog-row">
-        {items.map((it) => {
-          if (it.type === 'daily') {
-            return (
-              <div key={'d-' + it.game.id} className="inprog-card" style={{ '--accent-tint': it.game.tagColor + '24' }} onClick={() => onOpenDaily(it.game)}>
-                <div className="ip-icon">{it.game.icon}</div>
-                <div className="ip-name">{it.game.name}</div>
-                <div className="ip-sub resume">▶ Resume run</div>
-              </div>
-            );
-          }
-          const expH = roomExpiresInHours(it.room);
-          // #145 — a room still waiting for an opponent now surfaces here too.
-          // Previously /api/rooms/mine only returned ACTIVE rooms, so a room you
-          // created and left simply vanished from your side of the app.
-          if (it.room.waiting) {
-            return (
-              <div key={'r-' + it.room.id} className="inprog-card room" style={{ '--accent-tint': it.game.tagColor + '24' }} onClick={() => onOpenRoom(it.room)}>
-                <div className="ip-icon">{it.game.icon}</div>
-                <div className="ip-name">{it.game.name}</div>
-                <div className="ip-sub">⏳ Waiting for opponent</div>
-                <div className="ip-sub resume mono">code {it.room.id}</div>
-              </div>
-            );
-          }
-          return (
-            <div key={'r-' + it.room.id} className="inprog-card room" style={{ '--accent-tint': it.game.tagColor + '24' }} onClick={() => onOpenRoom(it.room)}>
-              <div className="ip-icon">{it.game.icon}</div>
-              <div className="ip-name">{it.game.name}</div>
-              <div className={'ip-sub' + (it.room.myTurn ? ' turn' : '')}>
-                {it.room.myTurn ? '🔔 Your turn' : '⏳ Their move'} · vs {it.room.opponentName}
-              </div>
-              {expH != null && (
-                <div className={'ip-sub' + (expH <= 6 ? ' expiring' : '')}>
-                  ⏱ expires in {expH}h
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
-// Daily checklist (#295): one chip per daily game, in a horizontal scroller,
-// so a player can sweep every deal without hunting the grid. The checked
-// state reads the SAME source the cards' "✓ PLAYED" badge reads —
-// cardDailyId + attempts[id].finishedAt from /api/daily — so it cannot
-// disagree with the grid and needs no second fetch. In-progress shows ▶,
-// unplayed shows an empty circle. A tap launches the chip's daily id through
-// the normal launch path (finished → locked screen, else pre-game), exactly
-// like the card's own Daily button.
-function DailyChecklist({ attempts, loading, onPlay }) {
-  const cards = GAME_CARDS.filter((c) => cardDailyId(c));
-  if (!cards.length) return null;
-  const stateOf = (c) => {
-    const id = cardDailyId(c);
-    const a = id ? attempts[id] : null;
-    if (a && a.finishedAt) return 'done';
-    if (a) return 'resume';
-    return 'todo';
-  };
-  const done = cards.filter((c) => stateOf(c) === 'done').length;
-  return (
-    <div className="dl-wrap">
-      <div className="home-section-title">
-        Daily checklist
-        <span className="home-pin-count mono">{done}/{cards.length}</span>
-      </div>
-      <div className="dl-row" role="list" aria-label="Daily challenges to play today">
-        {cards.map((c) => {
-          const s = stateOf(c);
-          const id = cardDailyId(c);
-          return (
-            <button
-              key={c.key}
-              role="listitem"
-              className={'dl-check tappable ' + s}
-              aria-label={`${c.name} daily — ${s === 'done' ? 'played today' : s === 'resume' ? 'in progress' : 'not played yet'}`}
-              {...tapProps(() => { if (!loading) onPlay(id); })}
-            >
-              <span className="dl-mark" aria-hidden="true">{s === 'done' ? '✓' : s === 'resume' ? '▶' : ''}</span>
-              <span className="dl-icon" aria-hidden="true">{c.icon}</span>
-              <span className="dl-name">{c.name}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
-/* Recently Played (Recent goal): the viewer's last five plays as one tappable
-   tile each, mirroring InProgressRow's strip shape so the lobby keeps a single
-   rhythm. Renders nothing at all when there is no history (the server only
-   sends plays the signed-in viewer made), so an empty account simply shows the
-   grid without the strip. GAMES is defined later in the bundle order, which is
-   fine: the lookup runs at render time, not at parse time. */
-function fmtPlayedAgo(iso, offset) {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return null;
-  const mins = Math.max(1, Math.round((Date.now() + (offset || 0) - t) / 60000));
-  if (mins < 60) return `${mins}m ago`;
-  const h = Math.round(mins / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
-}
 
-function RecentlyPlayedRow({ items, onOpen, offset }) {
-  if (!items || !items.length) return null;
-  return (
-    <div className="inprog-row-wrap">
-      <div className="home-section-title">Recently Played</div>
-      <div className="inprog-row recent-row">
-        {items.map((p) => {
-          const g = GAMES.find(x => x.id === p.gameId);
-          if (!g) return null;
-          return (
-            <button
-              key={p.gameId}
-              className="inprog-card recent-card"
-              style={{ '--accent-tint': g.tagColor + '24' }}
-              aria-label={'Replay ' + g.name}
-              {...tapProps(() => onOpen(p.gameId))}
-            >
-              <div className="ip-icon">{g.icon}</div>
-              <div className="ip-name">{g.name}</div>
-              <div className="ip-sub resume">▶ Replay</div>
-              {p.playedAt && (
-                <div className="ip-sub mono">{fmtPlayedAgo(p.playedAt, offset)}</div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // Per-game public chat room (phase 7): one room per game, 10s polling, report-
 // to-hide moderation (3 distinct reports auto-hide a message server-side).
@@ -1055,7 +802,7 @@ function GameBoards({ game, onClose }) {
 
 function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offset, onReset, onPlay, onPractice, onHowTo, onChat,
                          playMode, storyProgress, storyBand, onStoryBand, arcadeBandId, onArcadeBand, arcadeBest,
-                         onReplayRun, dailyBandId, onDailyBand }) {
+                         onReplayRun, dailyBandId, onDailyBand, variant }) {
   /* `?boards=1` opens the panel at mount. The boards are behind a tap, and a
      screen behind a tap is invisible to proposal checks and to the before/after
      screenshots alike — the same reason ?sheet= exists for the classic shell. */
@@ -1084,11 +831,17 @@ function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offs
   const claimed = !!attempt;
   const activeBand = claimed && attempt && isDailyBand(attempt.band)
     ? attempt.band : (dailyBandId || 'normal');
+  /* The flip-deck lobby shows this same panel on the back of an opened card
+     (`variant="deck"`). The card's back already carries the picture, the name
+     and the description, so those three stay off, and the daily's difficulty
+     is a list of rows that each say what the band changes and what it pays —
+     there is room for that on a card turned over, and not in a pill row. */
+  const deck = variant === 'deck';
   return (
-    <div className="pregame-card" style={{ '--accent': game.tagColor || C.accent }}>
-      <div className="pregame-icon">{game.icon}</div>
-      <h2>{game.name}</h2>
-      <div className="sub">{game.desc}</div>
+    <div className={'pregame-card' + (deck ? ' deck' : '')} style={{ '--accent': game.tagColor || C.accent }}>
+      {!deck && <div className="pregame-icon">{game.icon}</div>}
+      {!deck && <h2>{game.name}</h2>}
+      {!deck && <div className="sub">{game.desc}</div>}
       <div className="pregame-chips">
         {m.sessionLength && SESSION_LENGTH_LABEL[m.sessionLength] && (
           <span className="pregame-chip">⏱ {SESSION_LENGTH_LABEL[m.sessionLength]}</span>
@@ -1144,7 +897,31 @@ function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offs
           ranked on its own board. Once today's attempt has been claimed the
           band is fixed (the lock is one attempt per day, not one per band), so
           the picker shows what was played rather than offering a switch. */}
-      {isDaily && (
+      {isDaily && deck && (
+        <div className="pregame-bands deck-rows" role="group" aria-label="Choose a difficulty">
+          {DAILY_BANDS.map(b => {
+            const label = b[0].toUpperCase() + b.slice(1);
+            const note = b === 'normal' ? 'The standard deal.'
+              : (DAILY_BAND_NOTES[game.id] && DAILY_BAND_NOTES[game.id][b]) || '';
+            return (
+              <button
+                key={b}
+                className={'pregame-band-opt tappable' + (b === activeBand ? ' on' : '') + (claimed ? ' locked' : '')}
+                disabled={claimed && b !== activeBand}
+                aria-pressed={b === activeBand ? 'true' : 'false'}
+                aria-label={label}
+                {...tapProps(() => { if (!claimed) onDailyBand && onDailyBand(b); })}
+              >
+                <span className="pbo-radio" aria-hidden="true" />
+                <span className="pbo-txt"><span className="pbo-t">{label}</span>{note && <span className="pbo-s">{note}</span>}</span>
+                <span className="pbo-m mono">×{DAILY_BAND_MULT[b]}</span>
+              </button>
+            );
+          })}
+          {claimed && <div className="pregame-band-note">Already started today — this is your board.</div>}
+        </div>
+      )}
+      {isDaily && !deck && (
         <div className="pregame-bands" role="group" aria-label="Choose a difficulty">
           <div className="pregame-bands-label">Difficulty</div>
           <div className="pregame-band-row wide">

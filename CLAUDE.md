@@ -213,21 +213,41 @@ proposal checks and screenshots cannot do, so none of #176 would have been
 verifiable. `demo=modes` seeds a half-walked ladder plus arcade rivals and
 run history.
 
-### Every card entry point is a BUTTON, and there is one of them per mode
+### The card is the way in (flip-deck lobby — this replaced "one button per mode")
 
-A card's tap target is its mode buttons — never the card itself. The
-single-mode games (the seven head-to-head ones) used to have no button at
-all: the whole card was one hit area, which made them read as a different
-kind of thing to their neighbours and gave the player nothing to aim at.
-`29-cards.jsx` synthesises a one-entry mode list for them
-(`{ mode: null, label: 'Play' }`) so the same `.card-mode-btn` markup and
-the same `tapProps` press feedback cover all 34 games. `.card-plain-hit`
-is gone; a card without a button is a bug, not a layout variant.
+Until the flip-deck redesign, a card's tap target was its mode buttons and
+never the card itself (the old rule, kept here so it is not re-litigated by
+accident): a single-mode card that was one big hit area read as a different
+kind of thing from its neighbours, so `29-cards.jsx` gave every card buttons,
+head-to-head games included. That rule was about CONSISTENCY, and the redesign
+keeps the consistency by going the other way: **every** card is now one button,
+the card itself, and the ways to play are on its back.
 
-The daily button is **outlined, not filled**. A filled accent block on
-every daily card turned the grid into a wall of colour, which is the
-opposite of the emphasis it was meant to carry — the state (fresh /
-in-progress / done) reads from the border and label instead.
+- **Tapping a card opens it** (`DeckOpenCard`, `29b-flip-deck.jsx`): it lifts
+  out of its row, grows and turns over, and its back is that game's pre-game
+  panel — `PreGameScreen` with `variant="deck"`, so the bands, practice run,
+  resume, guest play, How to play / chat / leaderboards are the same component
+  the `?game=` route renders, not a second copy. Daily / Story / Arcade are tabs
+  on the back. A card with no play modes says what its axis is instead (Choose
+  an opponent → `OpponentScreen`; Escape from Dracula → Start reading).
+- **The face still says what a card offers**: the mode icons sit in its
+  bottom-right corner, and the Daily icon carries today's state (a brass ✓ once
+  played, a brass dot while in progress) — the job the old DAILY ✓ / ▶ RESUME
+  badge and the outlined daily button did.
+- **Pin (#232) and Favorite moved to the card's back** (`DeckPanelActions`).
+  Same anchor-id storage (`cardAnchorId` / `cardPinId`), same server routes.
+- **The panel keeps its OWN mode and bands until Play** (`deckOpen` in App).
+  `playMode`, `storyBand`, `arcadeBandId`, `dailyBandId` and `currentGame` are
+  part of navState's page key: writing them while the card is open would push a
+  history entry per tab and scroll the lobby to the top behind the card (#239).
+  `deckPlay` writes them and calls `startRun` exactly as the pre-game screen's
+  Play does. The open card is itself a navState overlay (`'card'`, like
+  Settings), counted only while the screen is the lobby, so device back closes
+  it and back from a game returns to it.
+- **`?card=<game id or card key>`** opens a card already turned over, and
+  **`&cmode=daily|story|arcade`** picks its tab — the back is otherwise behind a
+  tap, which checks and before/after shots cannot make. Consumed once, after
+  the day loads.
 
 ### One opponent screen for all seven head-to-head games
 
@@ -337,7 +357,8 @@ loading mechanism is unusual on purpose.
   object and a single global `css` template literal injected via
   `<style>{css}</style>`. Add component styles to `css` and reuse `C`
   tokens (e.g. `${C.accent}`); don't introduce a second stylesheet.
-  Fonts are Space Grotesk (body) + JetBrains Mono (`.mono`).
+  Fonts are Space Grotesk (body) + JetBrains Mono (`.mono`); the flip-deck
+  lobby uses DM Serif Display (headings, card names) + Plus Jakarta Sans.
 - **Theming — `C` is CSS custom properties, not hex.** `PALETTES.light`
   / `PALETTES.dark` hold the raw values (plus `DERIVED` for
   shadow/scrim/well/hover tokens); `paletteVars()` emits them into
@@ -614,6 +635,47 @@ The streak multiplies points via **tiers**, defined once in
   multiplier in `finish` instead of trusting the client `finalScore`)
   matters only if a leaderboard ships; the displayed multi-day streak
   has **no** grace-day/freeze — a missed UTC day resets it to 0.
+
+## The flip-deck lobby
+
+The home screen is a card table, in **felt in both themes** — like a game
+board, it does not follow light/dark (its colours are fixed in the `.fd-*`
+rules and the `.fd-lobby` / `.fd-ov` custom properties, and `html.felt-page`
+paints the overscroll). Every screen past the lobby still follows the theme.
+
+- **Files.** `29a-deck-art.jsx` — every card's picture, as DATA: a list of
+  positioned "bits" on a 150 × 100 grid drawn by `DeckArt` (memoised; the lobby
+  re-renders every second for its countdowns). The scene is cover-cropped into
+  a square on the card, so what matters sits in x 25..125. `29b-flip-deck.jsx`
+  — shelves, the card face (`DeckFace`, memoised on primitives), the card button,
+  the Game of the day banner, the open card and its panel pieces. Both are in
+  `ORDER` after `29-cards.jsx`.
+- **Coverage is asserted.** `DECK_SHELF_OF` (card key → Puzzles / Words /
+  Arcade / Board & cards) and `DECK_ART` must cover exactly `GAME_CARDS`; the
+  `deck-coverage` self-test fails the build otherwise. **Adding a game means
+  adding its shelf and its scene.**
+- **Order of the home:** Game of the day (its card, tilted; Play opens it on the
+  daily) → Today (day streak · best, and today's points — the old nav Score /
+  Streak) → Today's dailies (one row, `deckDailyOrder`: in progress, the game of
+  the day, then by all-time points earned as the measure of how much you play
+  it, then the ones done today) → Your matches (online rooms only, and only when
+  there is one — the only way back into a match) → All games (search, shelf
+  chips + Favorites, a Pinned shelf, then a shelf per category; a chip or a
+  search shows one grid).
+- **Retired with it, deliberately:** the masthead, the "New this week" strip
+  (What's new is a row in Settings now), the daily checklist (the dailies row
+  is it), Recently played, Today's Top Scores on the home (the game's own
+  leaderboards are on its card's back), the Daily / Classic chips and their
+  Completed-today split (`?tab=daily|classic` land on All), the streak pill on
+  every card (#313/#362 — the Today strip carries the streak and the best), and
+  the bar's Score, Streak, Friends, theme and settings buttons (the bar is the
+  mark and your avatar; Friends and Settings are on your profile; signed out,
+  the gear stands in for the avatar). The game of the day's GotD-only board
+  (`/api/daily/leaderboard/today`) is no longer read by the client.
+- **The dailies row is keyed on its first card.** A scroll-snapped row keeps its
+  snap on the same card when cards are inserted ahead of it, so when the day
+  loads and the game of the day moves to the front, an un-keyed row opens one
+  card in, hiding it.
 
 ## Game Corner phase 2 — harness formalization
 
@@ -909,7 +971,8 @@ record but silently settle as `disputed`, losing the Verified badge.
   public `GET /api/public/daily` (so the signed-out hero renders too). The
   seed is the game's normal daily seed; streaks are **unchanged** (any daily
   play counts — GotD-participation streaks per spec §6.3 remain deferred).
-- **Home reorg.** The three-tab lobby is retired. `lobbyTab` is now
+- **Home reorg** (the layout below is history — the flip-deck lobby replaced
+  it; see "The flip-deck lobby"). The three-tab lobby is retired. `lobbyTab` is now
   `'home' | 'ladder'` (legacy `?tab=daily/classic/feed` land on home;
   `?tab=ladder` still deep-links — the Community Feed screen, post/comment
   UI, Share-to-Feed, and profile follower counts were retired in the
@@ -1764,6 +1827,17 @@ you navigate to it, so a plain CSS animation on its class is enough. That
 matters: remounting a game at the wrong moment is how a finished 2048 board
 came back as a fresh one (#158/#160), and a transition implemented with a
 changing `key` would do exactly that.
+
+**The one exception is the flip-deck's open card**, and it is a navigation
+in all but name: the card BECOMES the pre-game panel. It still keeps the
+rules that matter here. Nothing it shows measures a board (the board mounts on
+the game screen, after it has gone), nothing remounts the lobby, the card's own
+press feedback is still on finger-down (`tapProps`), and reduced motion (the
+pref or the OS) opens and closes it with no motion at all (`cgReducedMotion` in
+`DeckOpenCard`, plus both CSS lists). **At rest the 3D is switched off**, not
+merely finished: a `transform`, `perspective` or `preserve-3d` ancestor is the
+containing block of every `position: fixed` descendant, so the leaderboards
+sheet inside the panel would otherwise open inside the card, rotated.
 
 **Two variants, and the difference is not cosmetic.** A running `transform`
 changes what `getBoundingClientRect` reports, and the boards here measure

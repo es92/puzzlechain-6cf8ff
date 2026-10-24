@@ -760,7 +760,7 @@ function WhatsNewSheet({ onClose }) {
 /* App-wide Settings sheet. Same bottom-sheet chrome as the chat / what's-new
    sheets; reuses CgSettings so the theme + feedback prefs are defined once and
    rendered identically here and in a classic game's ☰ → Settings tab. */
-function SettingsSheet({ onClose }) {
+function SettingsSheet({ onClose, onWhatsNew }) {
   return (
     <div className="chat-overlay" onClick={onClose}>
       <div className="chat-panel settings-panel" onClick={(e) => e.stopPropagation()}>
@@ -770,6 +770,15 @@ function SettingsSheet({ onClose }) {
         </div>
         <div className="chat-list settings-list">
           <CgSettings />
+          {/* The weekly What's new sheet. Its way in used to be the lobby's
+              "New this week" strip, retired with the flip-deck redesign. */}
+          {onWhatsNew && (
+            <button type="button" className="settings-whatsnew tappable" {...tapProps(onWhatsNew)}>
+              <span>🗞️ What's new</span>
+              <span className="sw-sub">{CHANGELOG[0].weekOf}</span>
+              <span className="sw-go" aria-hidden="true">›</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

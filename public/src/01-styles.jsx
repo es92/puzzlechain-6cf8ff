@@ -1,5 +1,5 @@
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Fraunces:ital,opsz,wght@0,9..144,500..900;1,9..144,500..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Fraunces:ital,opsz,wght@0,9..144,500..900;1,9..144,500..900&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* ---- Theme tokens ----
    Light is the :root default; dark is one attribute flip away. The inline
@@ -114,42 +114,8 @@ body {
   gap: 0.4rem;
 }
 .nav-brand .logo { color: ${C.accent}; }
-.nav-stats { display: flex; gap: 1rem; }
-.nav-stat { text-align: right; }
-.nav-stat .label {
-  font-size: 0.56rem;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: ${C.muted};
-}
 /* The stacked label + value is the bar's height floor now, so both carry an
    explicit line-height: the default leading was adding 8px of nothing. */
-.nav-stat .value {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  font-size: 0.92rem;
-  line-height: 1.25;
-}
-.nav-stat .value.score { color: ${C.gold}; }
-.nav-stat .value.streak { color: ${C.emerald}; }
-.mult-badge {
-  margin-left: 0.4rem;
-  font-size: 0.62rem;
-  font-weight: 600;
-  color: ${C.gold};
-  background: ${ca('gold','1f')};
-  border: 1px solid ${ca('gold','40')};
-  border-radius: 999px;
-  padding: 0.05rem 0.35rem;
-  vertical-align: middle;
-}
-.streak-badge-icon {
-  margin-left: 0.35rem;
-  font-size: 0.95rem;
-  vertical-align: middle;
-  line-height: 1;
-}
 /* Earned-badge collection strip (lobby + profile) */
 .badge-strip {
   display: flex;
@@ -262,7 +228,6 @@ body {
   .badge-chip .badge-chip-name { font-size: 0.62rem; line-height: 1.2; }
 }
 /* Today's Top Scores leaderboard tweaks (reuses .lboard) */
-.lboard.champions { margin-top: 0; }
 .lboard .lrow.clickable { cursor: pointer; }
 .lboard .lrow.clickable:hover { background: ${C.border}; }
 /* Win-overlay "couldn't sync" note + retry */
@@ -413,7 +378,6 @@ body {
   .account-chip .who { display: none; }
   .account-chip { padding: 0.25rem; }
   .nav-right { gap: 0.6rem; }
-  .nav-stats { gap: 0.8rem; }
   /* The phones are where the forwarded insets actually apply, so the gutter
      grows by them here rather than being replaced by a bare shorthand. */
   .lobby { padding: 1rem calc(0.75rem + var(--pc-safe-right)) 1rem calc(0.75rem + var(--pc-safe-left)); }
@@ -422,7 +386,6 @@ body {
   /* The Friends chip moves into the profile's Connections section
      on mobile. Scoped under .nav-right so it outranks the base chip rules
      defined later in this stylesheet regardless of source order. */
-  .nav-right .nav-friends-btn { display: none; }
   /* Badge accordion: trigger is interactive on mobile */
   .badge-strip-body { overflow: hidden; transition: max-height 280ms ease, opacity 280ms ease; }
   .badge-strip-body.closed { max-height: 0; opacity: 0; }
@@ -440,7 +403,6 @@ body {
 @media (max-width: 380px) {
   .nav { padding-left: 0.6rem; padding-right: 0.6rem; }
   .nav-right { gap: 0.4rem; }
-  .nav-stats { gap: 0.55rem; }
   /* The wordmark is nowrap now, so it can no longer absorb the squeeze by
      wrapping. On the smallest screens it TRUNCATES instead — never
      display:none, because a clipped node still reports its full text to
@@ -462,24 +424,6 @@ body {
   font-weight: 600;
   letter-spacing: 0.01em;
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-  /* #167 — one uniform tile height for the WHOLE grid, not just per row.
-     grid-auto-rows: 1fr makes every implicit row the same height (the tallest
-     card's content sets it) and the default align-items: stretch fills each
-     cell, so the wall reads as even tiles.
-
-     This deliberately REPLACES #146's align-items: start. That rule existed
-     because a dual-mode card stacked two captioned mode buttons and towered
-     over a single-mode card, so stretching left big voids under the short
-     ones. The fix for that is upstream, not here: .card-modes is now a compact
-     SIDE-BY-SIDE pair, which shrinks the difference to a normal amount of tile
-     padding, and every card clamps its own title/desc so no one long string
-     can inflate the entire wall. Undo either half and the voids come back. */
-  grid-auto-rows: 1fr;
-}
 
 /* #182 — phones get TWO cards per row, not one.
 
@@ -495,75 +439,13 @@ body {
    floor is the card's min-content width, and a long unbroken game name would
    push the track wider than half the row and overflow. grid-auto-rows: 1fr
    above still applies, so the uniform-tile-height guarantee is untouched. */
-@media (max-width: 560px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
-  }
-}
-
-.card {
-  background: ${C.card};
-  border: 1px solid ${C.border};
-  border-radius: 14px;
-  padding: 1.1rem;
-  cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
-  position: relative;
-  overflow: hidden;
-  /* #167 — a column, so the identity block sits at the top and the state footer
-     (tag / lock / resume / mode buttons) is pushed to the bottom by its own
-     margin-top: auto. In a stretched grid cell that is what turns the leftover
-     space into even tile padding instead of a ragged edge. min-height: 0 lets
-     the clamped children actually shrink. */
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-}
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--accent, ${C.accent});
-}
-.card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent, ${C.accent});
-  box-shadow: 0 10px 26px var(--c-shadow-md);
-}
-.card.done {
-  opacity: 0.55;
-  cursor: default;
-}
-.card.done:hover { transform: none; border-color: ${C.border}; box-shadow: none; }
 
 /* Card icon on a rounded tile in the game's tint, so the grid scans by game
    art first and text second (Poki/CrazyGames picture-first tiles). */
-.card-icon {
-  width: 48px; height: 48px; border-radius: 13px;
-  background: var(--accent-tint, var(--c-well));
-  display: grid; place-items: center;
-  font-size: 1.65rem; line-height: 1; margin-bottom: 0.65rem; flex: 0 0 auto;
-}
 /* #167 — clamped, so a long name or blurb can never grow its own tile (and,
    with grid-auto-rows: 1fr, can never grow the whole wall). The desc keeps a
    two-line floor as well as its new two-line ceiling, so short and long blurbs
    push the footer to exactly the same place. */
-.card-name {
-  font-size: 1.15rem; font-weight: 600; margin-bottom: 0.2rem;
-  flex: 0 0 auto;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-  overflow: hidden; overflow-wrap: anywhere;
-}
-.card-desc {
-  font-size: 0.85rem; color: ${C.muted}; line-height: 1.35;
-  min-height: 2.7em; margin-bottom: 0.75rem;
-  flex: 0 0 auto;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-  overflow: hidden;
-}
 
 /* #167 — the state footer. margin-top: auto is what pins it to the bottom of a
    stretched tile; .card-desc's margin-bottom is the minimum gap above it. .tag
@@ -571,11 +453,6 @@ body {
    align-self it would stretch to the full card width. These .card > X
    selectors outrank the plain margin-top declarations in .tag / .card-lock /
    .card-resume / .card-modes by specificity, whatever the source order. */
-.card > .tag,
-.card > .card-lock,
-.card > .card-resume,
-.card > .card-modes { margin-top: auto; flex: 0 0 auto; }
-.card > .tag { align-self: flex-start; }
 
 .tag {
   display: inline-block;
@@ -587,16 +464,6 @@ body {
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
   margin-top: 0.75rem;
-}
-
-.card-done-stats {
-  margin-top: 0.75rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  color: ${C.emerald};
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 
 /* ---- Game screen ---- */
@@ -1316,35 +1183,12 @@ ${emitTapHighlightRules()}
 .help-btn + .help-btn { margin-left: 0; }
 
 /* ---- Locked lobby card ---- */
-.card.locked { cursor: default; }
-.card.locked:hover { transform: none; border-color: ${C.border}; box-shadow: none; }
-.card-lock {
-  margin-top: 0.75rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  color: ${C.gold};
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.card.inprogress { border-color: ${C.gold}; }
-.card-resume {
-  margin-top: 0.75rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  color: ${C.gold};
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
 
 /* ---- Dual-mode (paired) lobby card (#146) ----
    A game that exists in BOTH an endless free-play form and a once-a-day form
    gets ONE card with two buttons instead of two near-duplicate cards. The card
    itself is never dimmed/locked — only the daily button changes state, so
    finishing today's daily can't make the free-play half look unavailable. */
-.card.paired { cursor: default; }
-.card.paired:hover { transform: none; border-color: ${C.border}; box-shadow: none; }
 /* #167 — the two mode buttons sit SIDE BY SIDE, not stacked. Stacked, they made
    a paired card tower over a single-mode card, which is the whole reason the
    grid used to let cards hug their content (see .grid). Two equal columns with
@@ -1356,73 +1200,20 @@ ${emitTapHighlightRules()}
    row and the third spans beneath. Column count is explicit per arity rather
    than auto-fit, because auto-fit would silently reflow to 1-up at the narrow
    end and tower the card again (the exact regression #167 fixed). */
-.card-modes {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 0.4rem; margin-top: 0.7rem;
-}
-.card-modes.n1 { grid-template-columns: 1fr; }
-.card-modes.n3 > :last-child { grid-column: 1 / -1; }
 /* The state line replaces per-button chatter: the card says where you stand,
    and the buttons say where you can go. Tabular figures so "Story 4/8" does not
    jitter as the numerator grows. */
-.card-state {
-  margin-top: 0.5rem; font-size: 0.62rem; letter-spacing: 0.04em;
-  color: ${C.dim}; font-variant-numeric: tabular-nums;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.card-mode-btn {
-  display: flex; flex-direction: column; justify-content: center;
-  width: 100%; min-width: 0; text-align: center;
-  font-family: inherit; color: ${C.text};
-  background: ${C.card};
-  border: 1px solid ${C.border};
-  border-radius: 10px;
-  /* Vertical padding is set so the button clears the 44px minimum tap target
-     even at the smaller side-by-side label/caption sizes. */
-  padding: 0.45rem 0.3rem;
-  min-height: 44px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
 /* One line each, ellipsised. At the grid's narrowest column (200px) the two
    buttons share ~166px, i.e. ~74px of text each, so anything that wraps costs
    every OTHER tile in the grid the same height (see .grid). The ellipsis is the
    safety net, not the plan — keep the caption copy in GAME_CARDS, and the
    dynamic strings in GameCard, inside that budget. The full captions live
    on the pre-game screen. */
-.cmb-label, .cmb-caption {
-  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.cmb-label { font-size: 0.72rem; font-weight: 700; line-height: 1.25; }
-.cmb-caption {
-  font-size: 0.62rem; line-height: 1.25; margin-top: 0.05rem;
-  color: ${C.muted};
-}
-.card-mode-btn.story:hover, .card-mode-btn.arcade:hover { border-color: var(--accent, ${C.accent}); }
-.card-mode-btn.story:hover .cmb-label,
-.card-mode-btn.arcade:hover .cmb-label { color: var(--accent, ${C.accent}); }
 /* An unplayed daily is marked by its BORDER and its label, not by a filled
    accent panel. Every card carried one, so the grid read as a wall of colour
    competing with the game art, and the daily looked like the only real button
    on a card that has three. The NEW TODAY badge above it already says the
    same thing. */
-.card-mode-btn.daily.fresh {
-  border-color: var(--accent, ${C.accent});
-}
-.card-mode-btn.daily.fresh .cmb-label { color: var(--accent, ${C.accent}); }
-.card-mode-btn.daily.fresh:hover { border-color: var(--accent, ${C.accent}); }
-.card-mode-btn.daily.resume {
-  background: ${ca('gold', '16')};
-  border-color: ${ca('gold', '35')};
-}
-.card-mode-btn.daily.resume .cmb-label { color: ${C.gold}; }
-.card-mode-btn.daily.played {
-  background: ${ca('emerald', '14')};
-  border-color: ${ca('emerald', '30')};
-}
-.card-mode-btn.daily.played .cmb-label { color: ${C.emerald}; }
-.card-mode-btn.daily.played .cmb-caption { font-family: 'JetBrains Mono', monospace; }
 
 /* ---- Leaderboard scope tabs + rating ladder (phase 4) ---- */
 .lb-scope-tabs { display: flex; gap: 0.35rem; margin: 0.5rem 0 0.6rem; flex-wrap: wrap; }
@@ -1591,26 +1382,6 @@ ${emitTapHighlightRules()}
      asserts those strings), so hiding it would remove real content, not just
      decoration. .card-mode-btn's min-height stays 44px — only its horizontal
      padding gives way. */
-  .grid > .card { padding: 0.75rem; border-radius: 12px; }
-  .grid > .card .card-icon { width: 38px; height: 38px; border-radius: 11px; font-size: 1.35rem; margin-bottom: 0.45rem; }
-  .grid > .card .card-name { font-size: 0.95rem; }
-  .grid > .card .card-desc {
-    font-size: 0.75rem;
-    min-height: 2.6em;
-    margin-bottom: 0.5rem;
-  }
-  .grid > .card .card-daily-badge {
-    top: 0.45rem;
-    /* The compact phone metrics re-cornered the badge into the pin's 44px
-       hit square (right 0.15rem + 2.75rem wide), putting the 📌 glyph on top
-       of the badge's right end. 3.2rem clears that square by ~5px, the
-       glyph itself by ~34px, and still clears the 38px icon tile at the
-       card's left edge. */
-    right: 3.2rem;
-    font-size: 0.5rem;
-    padding: 0.18rem 0.35rem;
-  }
-  .grid > .card .card-mode-btn { padding: 0.45rem 0.2rem; }
 }
 
 /* ---- Minesweeper ---- */
@@ -2939,7 +2710,7 @@ ${emitTapHighlightRules()}
    .nav-friends-btn — the theme control must stay reachable on phones. The
    theme toggle shares the gear's look on purpose: same outline, size and
    muted icon colour, so the pair reads as one control group. */
-.nav-settings-btn, .nav-theme-btn {
+.nav-settings-btn {
   background: transparent;
   border: 1px solid ${C.border};
   color: ${C.muted};
@@ -2949,8 +2720,7 @@ ${emitTapHighlightRules()}
   line-height: 1;
   cursor: pointer;
 }
-.nav-settings-btn:hover, .nav-theme-btn:hover { color: ${C.text}; border-color: ${C.accent}; }
-.nav-theme-btn[data-pressed] { border-color: ${C.accent}; color: ${C.text}; }
+.nav-settings-btn:hover { color: ${C.text}; border-color: ${C.accent}; }
 .cg-toggle {
   width: 2.8rem;
   height: 1.5rem;
@@ -3215,7 +2985,13 @@ ${emitTapHighlightRules()}
 :root[data-reduce-motion="1"] .cnl-roll-btn,
 :root[data-reduce-motion="1"] .ng-status.err,
 :root[data-reduce-motion="1"] .ng-status.ok,
-:root[data-reduce-motion="1"] .win-card .trophy {
+:root[data-reduce-motion="1"] .win-card .trophy,
+:root[data-reduce-motion="1"] .fd-card,
+:root[data-reduce-motion="1"] .fd-fc,
+:root[data-reduce-motion="1"] .fd-fc-flip,
+:root[data-reduce-motion="1"] .fd-back-body,
+:root[data-reduce-motion="1"] .fd-back-x,
+:root[data-reduce-motion="1"] .fd-ov-scrim {
   animation: none !important;
   transition: none !important;
 }
@@ -3334,6 +3110,9 @@ ${emitTapHighlightRules()}
   /* #185 — the between-bands overlay still counts down; it just stops
      bouncing while it does. */
   .adv-card, .adv-tally-num, .adv-count { animation: none !important; }
+  /* The flip-deck lobby: DeckOpenCard already skips the open/close motion
+     under reduced motion (cgReducedMotion); these stop the hover lift too. */
+  .fd-card, .fd-fc, .fd-fc-flip, .fd-back-body, .fd-back-x, .fd-ov-scrim { transition: none !important; }
 }
 
 /* ---- Knight's Tour ---- */
@@ -3932,56 +3711,15 @@ ${emitTapHighlightRules()}
 
 
 /* ---- Phase 7: GotD hero, home reorg, chat ---- */
-.gotd-hero {
-  border: 1px solid var(--accent-line, ${C.border}); border-top: 3px solid var(--accent, ${C.accent});
-  background: linear-gradient(160deg, ${C.card}, ${C.surface});
-  border-radius: 18px; padding: 18px 20px; margin-bottom: 1.4rem;
-}
-.gotd-label { color: var(--accent, ${C.accent}); font-size: 11px; letter-spacing: 0.12em; margin-bottom: 10px; }
-.gotd-main { display: flex; align-items: center; gap: 14px; cursor: pointer; }
 /* The hero icon sits on a rounded tile in the game's own tint (NYT-Games
    style), not as a bare emoji. --accent-tint is set inline on the hero. */
-.gotd-icon {
-  width: 72px; height: 72px; border-radius: 18px;
-  background: var(--accent-tint, var(--c-well));
-  display: grid; place-items: center;
-  font-size: 42px; line-height: 1; flex: 0 0 auto;
-}
-.gotd-info { flex: 1; min-width: 0; }
-.gotd-name { font-size: 20px; font-weight: 700; }
-.gotd-desc { color: ${C.muted}; font-size: 13px; margin-top: 2px; }
-.gotd-meta { color: ${C.muted}; font-size: 11.5px; margin-top: 6px; }
-.gotd-play { padding: 12px 24px; min-height: 48px; font-size: 1rem; white-space: nowrap; flex-shrink: 0; width: auto; margin: 0; }
-@media (max-width: 560px) {
-  .gotd-main { flex-wrap: wrap; }
-  .gotd-icon { width: 56px; height: 56px; border-radius: 16px; font-size: 32px; }
-  .gotd-play { width: 100%; margin-top: 4px; }
-}
-.gotd-play:disabled { opacity: 0.75; }
 /* Review round 1 — loading skeleton: holds the hero's footprint while
    /api/daily is in flight so the grid doesn't jump when the panel arrives.
    Fallback is var(--c-well) and not the C.well token: well is DERIVED, so
    interpolating it here would emit a broken declaration. */
-.gotd-skel { display: flex; align-items: center; gap: 14px; min-height: 150px; }
-.gotd-skel-tile {
-  width: 72px; height: 72px; border-radius: 18px;
-  background: var(--c-well); flex: 0 0 auto;
-}
-.gotd-skel-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.gotd-skel-bar { height: 14px; border-radius: 7px; background: var(--c-well); }
-.gotd-skel-bar.w1 { width: 42%; }
-.gotd-skel-bar.w2 { width: 85%; }
-.gotd-skel-bar.w3 { width: 60%; height: 10px; }
-@media (max-width: 560px) {
-  .gotd-skel-tile { width: 56px; height: 56px; border-radius: 16px; }
-}
 /* Review round 1 — error notice: what a 5xx leaves where the hero would sit,
    in the same card style (.gotd-hero carries the card chrome). The retry
    button reuses .primary-btn; only its inline sizing is adjusted. */
-.gotd-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.gotd-err-line { color: ${C.muted}; font-size: 14px; flex: 1; min-width: 0; }
-.gotd-err-retry { width: auto; flex: 0 0 auto; padding: 9px 18px; min-height: 44px; }
-.gotd-signedout { color: ${C.muted}; font-size: 12.5px; margin-top: 12px; }
 
 /* Phase 8 — anonymous play + "make it count" */
 .guest-cta {
@@ -3999,30 +3737,6 @@ ${emitTapHighlightRules()}
 }
 
 /* "New this week" strip + What's-new sheet (weekly changelog) */
-.whatsnew-strip {
-  display: flex; align-items: stretch; gap: 6px;
-  border: 1px solid ${C.border}; background: ${C.card};
-  border-left: 3px solid ${C.gold};
-  border-radius: 12px; margin-bottom: 1rem; overflow: hidden;
-  box-shadow: 0 1px 2px var(--c-shadow-sm);
-}
-.wn-strip-body {
-  flex: 1; min-width: 0; text-align: left; background: none; border: none; cursor: pointer;
-  color: ${C.text}; font-family: inherit; font-size: 13px; line-height: 1.45;
-  padding: 9px 4px 9px 12px;
-  /* #234 — one line. This strip wrapped to three on a phone, spending ~95px
-     of the first screen on a changelog entry before a single game card. The
-     headline plus "See all >" is the whole job; the panel behind it holds the
-     detail. */
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.wn-strip-body strong { font-family: 'Fraunces', Georgia, serif; }
-.wn-more { color: ${C.accent}; font-weight: 600; white-space: nowrap; }
-.wn-strip-dismiss {
-  background: none; border: none; color: ${C.muted}; cursor: pointer;
-  font-size: 12px; padding: 0 12px;
-}
-.wn-strip-dismiss:hover { color: ${C.text}; }
 .wn-panel { height: min(64vh, 560px); }
 .wn-list { gap: 16px; }
 .wn-week-title {
@@ -4031,79 +3745,19 @@ ${emitTapHighlightRules()}
 }
 .wn-items { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 5px; }
 .wn-items li { font-size: 13px; line-height: 1.5; color: ${C.text}; }
-
-.home-section-title {
-  font-size: 1.05rem; font-weight: 700; margin: 1.6rem 0 0.75rem;
-  color: ${C.text};
-  border-bottom: 1px solid ${C.border}; padding-bottom: 0.35rem;
-  display: flex; align-items: baseline; gap: 0.5rem;
-}
 /* The count in a section header sits at the right edge (Poki/CrazyGames
    column-rule style). Headers without a count keep just the title. */
-.home-section-title .home-pin-count { margin-left: auto; }
 .home-back-btn {
   background: none; border: none; color: ${C.accent}; font-family: inherit;
   font-size: 14px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 0.8rem;
 }
-
-.inprog-row-wrap { margin-bottom: 0.4rem; }
-.inprog-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
-.inprog-card {
-  background: ${C.card}; border: 1px solid ${C.border}; border-radius: 12px;
-  padding: 10px 14px; min-width: 150px; cursor: pointer; flex-shrink: 0;
-}
-.inprog-card:hover { border-color: ${C.accent}; }
-.inprog-card .ip-icon {
-  width: 34px; height: 34px; border-radius: 10px;
-  background: var(--accent-tint, var(--c-well));
-  display: grid; place-items: center;
-  font-size: 20px; line-height: 1;
-}
-.inprog-card .ip-name { font-weight: 600; font-size: 13.5px; margin-top: 4px; white-space: nowrap; }
-.inprog-card .ip-sub { font-size: 11.5px; color: ${C.muted}; margin-top: 3px; }
-.inprog-card .ip-sub.resume { color: ${C.gold}; }
-.inprog-card .ip-sub.turn { color: ${C.emerald}; font-weight: 700; }
-.inprog-card .ip-sub.expiring { color: ${C.rose}; font-weight: 600; }
 /* Recently Played tiles (Recent goal) reuse the inprog-card look, but as real
    buttons: strip the browser chrome back to the shared card surface. */
-.recent-card {
-  font-family: inherit; text-align: left; color: ${C.text};
-  background: ${C.card}; border: 1px solid ${C.border};
-}
-.recent-card:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
 
 /* Daily checklist (#295): a horizontal scroller of one chip per daily game.
    Scrollbar is hidden on purpose — the cut-off chip at the right edge is the
    affordance — and snap keeps a partial chip from landing half-read. States
    follow the daily badge palette: emerald done, gold resume, plain todo. */
-.dl-wrap { margin-bottom: 0.4rem; }
-.dl-row {
-  display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 6px;
-  scrollbar-width: none; -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-}
-.dl-row::-webkit-scrollbar { display: none; }
-.dl-check {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
-  background: ${C.card}; border: 1px solid ${C.border}; border-radius: 999px;
-  padding: 6px 13px 6px 7px; font-family: inherit; font-size: 13px;
-  color: ${C.text}; cursor: pointer; scroll-snap-align: start;
-  white-space: nowrap;
-}
-.dl-check:hover { border-color: ${C.accent}; }
-.dl-mark {
-  width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
-  border: 1.5px solid ${C.border};
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; line-height: 1; font-weight: 700; color: white;
-}
-.dl-icon { font-size: 15px; line-height: 1; }
-.dl-name { font-weight: 600; }
-.dl-check.done { border-color: ${ca('emerald','4d')}; }
-.dl-check.done .dl-mark { background: ${C.emerald}; border-color: ${C.emerald}; }
-.dl-check.done .dl-name { color: ${C.muted}; }
-.dl-check.resume .dl-mark { border-color: ${C.gold}; color: ${C.gold}; }
 
 .chat-overlay {
   position: fixed; inset: 0; background: var(--c-scrim); z-index: 240;
@@ -4174,9 +3828,7 @@ ${emitTapHighlightRules()}
 .serif { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; }
 
 /* Serif display type on the shell's headline moments. */
-.nav-brand, .lobby-head h1, .home-section-title, .gotd-name,
-.pregame-card h2, .win-card h2, .locked-card h2,
-.howto-head h3, .chat-title {
+.nav-brand, .lobby-head h1, .pregame-card h2, .win-card h2, .locked-card h2, .howto-head h3, .chat-title {
   font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
   letter-spacing: 0;
 }
@@ -4185,40 +3837,11 @@ ${emitTapHighlightRules()}
 
 /* Brass for streaks (spec: brass = streaks/wins/medals; green stays a
    live/success color elsewhere). */
-.nav-stat .value.streak { color: ${C.gold}; }
 
 /* ---- Home masthead: numbered edition + dateline over a double rule ---- */
-.lobby-head.masthead { text-align: center; margin-bottom: 1.6rem; }
-.lobby-head.masthead h1 {
-  font-size: 2.1rem; font-weight: 900; letter-spacing: 0.005em; line-height: 1.1;
-}
-.masthead-dateline {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.64rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.14em; color: ${C.muted};
-  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
-  margin-bottom: 0.55rem;
-}
-.masthead-dateline::before, .masthead-dateline::after {
-  content: ''; flex: 1; max-width: 72px; height: 1px; background: ${C.border};
-}
-.lobby-head.masthead .masthead-rule {
-  height: 4px; margin: 0.7rem auto 0; max-width: 460px;
-  border-top: 2px solid ${C.text}; border-bottom: 1px solid ${C.text};
-}
-.lobby-head.masthead p { font-style: italic; font-family: 'Fraunces', Georgia, serif; }
 /* #372 — the home streak line. Same brass as the nav streak stat and the
    card-streak pill (gold is this app's reserved streak colour); the ×N tag is
    the nav's own .mult-badge, reused rather than restyled. */
-.lobby-head.masthead .home-streak {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  margin-top: 0.6rem;
-  font-size: 0.78rem; font-weight: 600;
-  color: ${C.gold};
-  font-variant-numeric: tabular-nums;
-}
-.lobby-head.masthead .home-streak .hs-flame { font-size: 0.85rem; line-height: 1; }
-.lobby-head.masthead .home-streak .mult-badge { margin-left: 0.1rem; }
 
 /* Section headers as newspaper column rules. The base rule lives in the
    Phase 7 block above (one declaration; the count rides at the right edge). */
@@ -4260,36 +3883,12 @@ ${emitTapHighlightRules()}
    unconditionally rather than only on cards that render a pin, so a daily and
    a classic card line their badges up the same way. 44px square is the touch
    minimum; the glyph inside it is small, so the padding does the work. */
-.card-pin {
-  position: absolute; top: 0.15rem; right: 0.15rem; z-index: 2;
-  width: 44px; height: 44px; display: grid; place-items: center;
-  background: none; border: 0; padding: 0; cursor: pointer;
-  font-size: 0.95rem; line-height: 1; opacity: 0.32;
-  filter: grayscale(1);
-  transition: opacity .12s ease, transform .12s ease, filter .12s ease;
-}
-.card-pin:hover { opacity: 0.6; }
-.card-pin.on { opacity: 1; filter: none; transform: rotate(-20deg); }
-.card-pin[data-pressed] { transform: scale(0.86); }
-.card-pin.on[data-pressed] { transform: rotate(-20deg) scale(0.86); }
-.card-pin[disabled] { opacity: 0.18; cursor: default; }
 
 /* The favorite star. Same 44px touch square and corner placement as .card-pin,
    but stacked BELOW it so the two controls never collide, and clear of the
    daily badge (which .card-pin already pushed left). The unfilled star is a
    bare outline at the pin's resting opacity; the filled one is unfiltered and
    fully opaque, which is the whole "filled vs empty" read. */
-.card-fav {
-  position: absolute; top: 2.7rem; right: 0.15rem; z-index: 2;
-  width: 44px; height: 44px; display: grid; place-items: center;
-  background: none; border: 0; padding: 0; cursor: pointer;
-  font-size: 1.05rem; line-height: 1; opacity: 0.32;
-  transition: opacity .12s ease, transform .12s ease;
-}
-.card-fav:hover { opacity: 0.6; }
-.card-fav.on { opacity: 1; }
-.card-fav.on { color: ${C.gold}; }
-.card-fav[data-pressed] { transform: scale(0.86); }
 
 /* The Pinned section's heading and the two lines that explain it. */
 .home-pinned-title { display: flex; align-items: baseline; gap: 0.5rem; }
@@ -4303,100 +3902,51 @@ ${emitTapHighlightRules()}
    headings rather than two grids. The finished cards are dimmed a little, not
    collapsed: they still carry today's score and the tap that reviews the
    board, so hiding them would lose the thing you'd go looking for. */
-.home-split-title { display: flex; align-items: baseline; gap: 0.5rem; margin-top: 1.4rem; }
-.home-split-empty { color: ${C.muted}; font-size: 0.82rem; margin: 0.6rem 0 0.2rem; }
-.grid.home-split-done .card { opacity: 0.72; }
-.grid.home-split-done .card:hover, .grid.home-split-done .card:focus-within { opacity: 1; }
 .home-pin-full {
   color: ${C.rose}; font-size: 0.78rem; margin: 0 0 0.6rem; font-weight: 600;
 }
 /* #234 — the pin hint teaches a real feature, so it stays; it just stops
    being a boxed 58px banner between the filter chips and the first game. One
    muted line, in the same register as the chips it follows. */
-.home-pin-empty {
-  color: ${C.muted}; font-size: 0.78rem; margin: -0.35rem 0 0.7rem;
-}
 /* The Favorites chip's empty state. Same register as .home-pin-empty above. */
 .home-fav-empty {
   color: ${C.muted}; font-size: 0.78rem; margin: -0.35rem 0 0.7rem;
 }
 
-.card-daily-badge {
-  position: absolute; top: 0.65rem; right: 2.7rem; z-index: 1;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.56rem; font-weight: 600;
-  letter-spacing: 0.07em; text-transform: uppercase;
-  padding: 0.2rem 0.45rem; border-radius: 999px; border: 1px solid transparent;
-}
-.card-daily-badge.fresh  { background: ${ca('accent','24')}; color: ${C.accent};  border-color: ${ca('accent','4d')}; }
-.card-daily-badge.resume { background: rgba(201,162,39,.16); color: #8A6F14;     border-color: rgba(201,162,39,.35); }
-.card-daily-badge.done   { background: rgba(30,143,99,.14);  color: ${C.emerald}; border-color: rgba(30,143,99,.30); }
-
 /* #313 — the per-card streak pill. It sits in the state footer beside the tag,
    reads the same brass the nav streak stat uses (gold is this app's reserved
    streak colour), and is deliberately a pill not a badge: it is status, not
    state, so it stays visible on played, resumed and fresh cards alike. */
-.card-streak {
-  display: inline-flex; align-items: center; gap: 0.25rem;
-  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.02em;
-  color: ${C.gold};
-  background: ${ca('gold', '14')};
-  border: 1px solid ${ca('gold', '55')};
-  border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  font-variant-numeric: tabular-nums;
-}
-.card-streak .cs-flame { font-size: 0.7rem; line-height: 1; }
-.card-streak .cs-days { color: ${C.gold}; opacity: 0.75; }
 /* #362 — the "best N" figure rides in the same pill: same gold and dimmed
    style as .cs-days, and nowrap so the label never breaks mid-pill. */
-.card-streak .cs-best { color: ${C.gold}; opacity: 0.75; white-space: nowrap; }
 
 /* The footer row that carries the tag and (when the card has a daily) the
    streak pill. align-items: baseline keeps the two pill shapes on one line
    whatever the flame glyph does to the pill's inner baseline. */
-.card-footer {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem;
-  /* Carries the tag row's old margin-top: auto, so the leftover space of a
-     stretched tile still becomes even padding above the footer. */
-  margin-top: auto;
-}
-.card-footer > .tag { margin-top: 0; }
 
 /* Card-weight white surfaces: soft warm shadow at rest, lift on hover. */
-.card, .gotd-hero, .inprog-card, .pregame-card, .win-card, .locked-card,
-.lboard, .howto-card {
+.pregame-card, .win-card, .locked-card, .lboard, .howto-card {
   box-shadow: 0 1px 2px var(--c-shadow-sm), 0 6px 18px var(--c-shadow-sm);
 }
 .win-card, .howto-card { box-shadow: 0 20px 50px var(--c-shadow-lg); }
 
 /* GotD hero reads as the front-page lead story: washed in the featured
    game's colour over the card surface (--accent-wash is set inline). */
-.gotd-hero { background: linear-gradient(var(--accent-wash, transparent), var(--accent-wash, transparent)), ${C.card}; }
-.gotd-label {
-  font-family: 'JetBrains Mono', monospace; font-weight: 600;
-  text-transform: uppercase;
-}
-.gotd-name { font-size: 22px; font-weight: 900; }
 /* GotD description stays serif but upright — the masthead tagline is the
    home screen's single italic moment. */
-.gotd-desc { font-family: 'Fraunces', Georgia, serif; }
 
 /* Per-game chrome picks up the game's accent (set as --accent inline on
    the lobby card, hero, and modal): accent Play buttons + tag pills. */
-.gotd-play, .pregame-card .pregame-play {
+.pregame-card .pregame-play {
   background: var(--accent, ${C.accent});
 }
-.gotd-play:hover, .pregame-card .pregame-play:hover {
+.pregame-card .pregame-play:hover {
   background: var(--accent, ${C.accent}); filter: brightness(0.88);
 }
 /* Dark look: the raw game colour is tuned for the light card, where its
    white label falls below AA (sky measured 3.81:1 — review round 1). The
    deepened fill (--accent-deep, set inline by GotdHero) restores 4.5:1.
    Scoped to the hero button; the pre-game screen is untouched. */
-html[data-theme='dark'] .gotd-play,
-html[data-theme='dark'] .gotd-play:hover {
-  background: var(--accent-deep, var(--accent, ${C.accent}));
-}
 .pregame-card { border-top: 3px solid var(--accent, ${C.accent}); }
 
 /* Buttons: crisp editorial edges. */
@@ -4556,4 +4106,461 @@ html[data-theme='dark'] .gotd-play:hover {
   .cg-stage .mnc-board { max-width: min(680px, var(--cg-board)) !important; }
   .cg-stage .cnl-board-wrap { max-width: min(680px, var(--cg-board)) !important; }
 }
+/* ============================================================
+   The flip-deck lobby — felt, in BOTH themes
+   ============================================================
+   The lobby's home is a card table: deep green felt, brass accents, cards in
+   cream. Like a game board it does not follow light/dark, so its colours are
+   fixed here (as .fd-lobby / .fd-ov custom properties) rather than read
+   from C. Every screen past the lobby keeps the theme. Fonts: DM Serif Display
+   for headings and card names, Plus Jakarta Sans for the rest. */
+html.felt-page, html.felt-page body { background: #0F4A36; }
+html.felt-page body {
+  background-image:
+    radial-gradient(ellipse 80% 520px at 50% 0, #17644A, transparent),
+    radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1.4px),
+    radial-gradient(rgba(0,0,0,0.13) 1px, transparent 1.4px);
+  background-size: 100% 100%, 3px 3px, 5px 5px;
+  background-position: 0 0, 0 0, 1px 2px;
+}
+.nav.felt { background: #0A3326; border-bottom-color: rgba(255,255,255,0.10); color: #F3EBD8; }
+.nav .logo svg { display: block; }
+.nav.felt .brandword {
+  font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 1.32rem;
+  letter-spacing: 0; color: #F3EBD8;
+}
+.nav.felt .account-chip, .nav.felt .account-chip.on {
+  background: transparent; border-color: transparent; padding: 0; color: #F3EBD8;
+}
+.nav.felt .account-chip .avatar {
+  width: 36px; height: 36px; font-size: 15px; font-weight: 800;
+  background: #FBF6EA; color: #1C1A17; box-shadow: 0 0 0 2px #D9B35E;
+}
+.nav.felt .account-chip.off { border-color: rgba(242,160,145,0.6); padding: 0.25rem 0.6rem; }
+.nav.felt .account-chip.off .who { color: #F2A091; }
+.nav.felt .nav-settings-btn { color: #F3EBD8; border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.06); }
+
+.lobby.fd-lobby {
+  --felt: #0F4A36; --felt-deep: #0A3326; --felt-lite: #17644A; --muted: #A8C3B4; --ivory: #F3EBD8;
+  --line: rgba(255,255,255,0.10); --brass: #D9B35E; --brass-hi: #E8C677; --brass-ink: #2A1E05;
+  --stock: #FBF6EA; --ink: #1C1A17;
+  max-width: 1264px; display: flex; flex-direction: column; gap: 32px;
+  padding: 18px calc(16px + var(--pc-safe-right)) 40px calc(16px + var(--pc-safe-left));
+  color: var(--ivory); font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.fd-lobby .commit-notice { margin: 0; }
+.fd-ic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- The card ---- */
+.fd-scene { position: absolute; inset: 0; display: block; overflow: hidden; container-type: inline-size; }
+.fd-scene::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), inset 0 -40px 40px -36px rgba(0,0,0,0.3);
+}
+.fd-bit { position: absolute; display: grid; place-items: center; line-height: 1; white-space: nowrap; }
+.fd-cardbtn {
+  display: flex; flex-direction: column; align-items: stretch; min-width: 0;
+  background: none; border: 0; padding: 0; margin: 0; text-align: left;
+  font-family: inherit; color: var(--ivory, #F3EBD8); cursor: pointer;
+}
+.fd-card {
+  position: relative; display: block; width: 100%; aspect-ratio: 9 / 14;
+  container-type: inline-size; border-radius: 6% / 3.857%; overflow: hidden;
+  background: #FBF6EA; color: #1C1A17;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 12px 26px rgba(0,0,0,0.36);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+/* Press feedback on finger-DOWN (the tap primitive's data-pressed), and a lift
+   only where there is a pointer that hovers. */
+.fd-cardbtn[data-pressed] .fd-card { transform: translateY(2px) scale(0.98); }
+@media (hover: hover) {
+  .fd-cardbtn:hover .fd-card { transform: translateY(-6px) rotate(-1.2deg); box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 20px 36px rgba(0,0,0,0.45); }
+}
+.fd-cardbtn:focus-visible { outline: none; }
+.fd-cardbtn:focus-visible .fd-card { outline: 2px solid #D9B35E; outline-offset: 3px; }
+.fd-cardbtn.live .fd-card { box-shadow: 0 0 0 2px #D9B35E, 0 12px 26px rgba(0,0,0,0.36); }
+.fd-in {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: center;
+  padding: 13cqw 8cqw 14cqw; border: 1.4cqw solid; border-radius: inherit;
+}
+.fd-corner {
+  position: absolute; top: 5.5cqw; left: 5.5cqw; display: flex; align-items: center; gap: 1.6cqw;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 5.6cqw; font-weight: 800;
+  letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; line-height: 1;
+}
+.fd-corner svg { width: 6cqw; height: 6cqw; flex: 0 0 auto; }
+.fd-name {
+  flex: 0 0 auto; min-height: 25cqw; display: flex; align-items: center; justify-content: center;
+  padding: 2cqw 1cqw; text-align: center;
+  font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 12cqw; line-height: 1.02; color: #1C1A17;
+}
+.fd-art {
+  position: relative; display: block; flex: 0 0 auto; width: 100%; aspect-ratio: 1; margin-top: 3cqw;
+  overflow: hidden; border-radius: 2.6cqw;
+  box-shadow: 0 0 0 0.6cqw rgba(28,26,23,0.85), 0 1.4cqw 2.4cqw rgba(0,0,0,0.25);
+}
+/* The 3:2 scene, cover-cropped into the square window. */
+.fd-art .fd-scene { inset: auto; top: 0; left: 50%; height: 100%; aspect-ratio: 3 / 2; transform: translateX(-50%); }
+.fd-modes { position: absolute; right: 5.5cqw; bottom: 5.2cqw; display: flex; align-items: center; gap: 2.6cqw; }
+.fd-mi { position: relative; display: inline-grid; }
+.fd-mi svg { width: 6.4cqw; height: 6.4cqw; }
+/* Today's daily on the Daily icon: a brass check once played, a dot while in progress. */
+.fd-mi.done::after {
+  content: '✓'; position: absolute; right: -2.2cqw; top: -2.4cqw; width: 4.8cqw; height: 4.8cqw;
+  border-radius: 50%; background: #D9B35E; color: #2A1E05; font-size: 3.4cqw; font-weight: 800;
+  display: grid; place-items: center; line-height: 1;
+}
+.fd-mi.live::after {
+  content: ''; position: absolute; right: -1.2cqw; top: -1.2cqw; width: 3.2cqw; height: 3.2cqw;
+  border-radius: 50%; background: #D9B35E; box-shadow: 0 0 0 0.6cqw #FBF6EA;
+}
+/* A phone-sized card keeps only the pip in its corner, and bigger icons. */
+@container (max-width: 170px) {
+  .fd-corner .fd-lbl { display: none; }
+  .fd-corner svg { width: 8.5cqw; height: 8.5cqw; }
+  .fd-mi svg { width: 8cqw; height: 8cqw; }
+  .fd-modes { gap: 2.8cqw; }
+}
+.fd-sub { margin-top: 10px; font-size: 12.5px; line-height: 1.3; color: var(--muted, #A8C3B4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fd-sub.go { color: #D9B35E; font-weight: 700; }
+.fd-sub2 { margin-top: 2px; font-size: 12px; line-height: 1.3; color: var(--muted, #A8C3B4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fd-sub2.warn { color: #F2A091; font-weight: 700; }
+
+/* ---- Game of the day ---- */
+.fd-hero {
+  position: relative; border-radius: 24px; padding: 16px 18px 18px;
+  background: radial-gradient(ellipse 90% 85% at 25% 15%, var(--felt-lite), var(--felt) 72%);
+  box-shadow: inset 0 0 0 1px rgba(217,179,94,0.42), 0 20px 40px rgba(0,0,0,0.25);
+}
+.fd-hero::before { content: ''; position: absolute; inset: 7px; border: 1px solid rgba(217,179,94,0.22); border-radius: 18px; pointer-events: none; }
+.fd-hero-in {
+  position: relative; display: grid; grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-areas: "top top" "card info" "btn btn"; gap: 16px 20px; align-items: center;
+}
+.fd-hero-top {
+  grid-area: top; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 2px 2px 0;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass);
+}
+.fd-hero-top .fd-cd { color: var(--ivory); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.fd-hero-cardwrap { grid-area: card; padding: 4px 0 8px 4px; }
+.fd-hero-cardwrap .fd-cardbtn { width: 100%; }
+.fd-hero-cardwrap .fd-card { transform: rotate(-4deg); }
+.fd-hero-info { grid-area: info; min-width: 0; }
+.fd-hero-name { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 28px; line-height: 1.05; color: var(--ivory); letter-spacing: 0; }
+.fd-hero-desc { font-size: 14px; line-height: 1.45; color: var(--ivory); opacity: 0.88; margin-top: 8px; }
+.fd-hero-meta { font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 8px; }
+.fd-hero-guest { font-size: 12.5px; line-height: 1.4; color: var(--brass); margin-top: 8px; }
+.fd-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; padding: 0 20px;
+  border-radius: 999px; border: 0; background: #D9B35E; color: #2A1E05;
+  font-family: inherit; font-weight: 800; font-size: 16px; cursor: pointer;
+  box-shadow: 0 2px 0 #9C7A2E, 0 10px 22px rgba(0,0,0,0.28);
+}
+.fd-btn[data-pressed] { background: #C9A24D; box-shadow: 0 1px 0 #9C7A2E, 0 6px 14px rgba(0,0,0,0.28); }
+@media (hover: hover) { .fd-btn:hover { background: #E8C677; } }
+.fd-hero-btn { grid-area: btn; }
+.fd-hero-skel { display: flex; align-items: center; gap: 20px; min-height: 230px; }
+.fd-skel-card { flex: 0 0 auto; width: 118px; aspect-ratio: 9 / 14; border-radius: 10px; background: rgba(255,255,255,0.06); }
+.fd-skel-info { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.fd-skel-bar { height: 14px; border-radius: 7px; background: rgba(255,255,255,0.06); }
+.fd-skel-bar.w1 { width: 40%; } .fd-skel-bar.w2 { width: 85%; } .fd-skel-bar.w3 { width: 60%; }
+.fd-hero-err { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.fd-err-line { color: var(--ivory); font-size: 15px; }
+.fd-hero-err .fd-btn { width: auto; }
+
+/* ---- Today: the streak and the day's points ---- */
+.fd-today {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: -8px;
+  border-radius: 16px; overflow: hidden; background: rgba(0,0,0,0.2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.fd-stat { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 12px 14px 15px; }
+.fd-stat + .fd-stat { border-left: 1px solid var(--line); }
+.fd-num {
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-family: 'DM Serif Display', Georgia, serif; font-size: 24px; line-height: 1.1; color: var(--ivory); font-variant-numeric: tabular-nums;
+}
+.fd-num svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.fd-num .fd-ic { color: var(--brass); }
+.fd-lbl2 { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Sections and rows ---- */
+.fd-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.fd-sec-head h2 {
+  font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 24px; line-height: 1.15;
+  color: var(--ivory); letter-spacing: 0; margin: 0;
+}
+.fd-sec-head h2.minor { font-size: 21px; }
+.fd-sec-r { display: flex; align-items: center; gap: 14px; }
+.fd-count {
+  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px 0 8px; align-self: center;
+  border-radius: 999px; background: rgba(0,0,0,0.22); border: 1px solid var(--line);
+  font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;
+}
+.fd-count b { color: var(--ivory); font-weight: 800; }
+.fd-count svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.fd-ring-bg { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 2.5; }
+.fd-ring-fg { fill: none; stroke: #D9B35E; stroke-width: 2.5; stroke-linecap: round; }
+.fd-row-nav { display: none; gap: 8px; }
+.fd-rn {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: rgba(0,0,0,0.2); border: 1px solid var(--line); color: var(--ivory);
+}
+.fd-rn svg { width: 18px; height: 18px; }
+@media (hover: hover) { .fd-rn:hover { border-color: var(--brass); color: var(--brass); } }
+.fd-hint { font-size: 13px; color: var(--muted); }
+.fd-row {
+  display: flex; align-items: flex-start; gap: 14px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none; scroll-padding-inline: 16px;
+  margin: 0 -16px; padding: 14px 16px 16px;
+  -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent); mask-image: linear-gradient(90deg, #000 90%, transparent);
+}
+.fd-row::-webkit-scrollbar { display: none; }
+.fd-row > .fd-cardbtn { flex: 0 0 auto; width: 148px; scroll-snap-align: start; }
+.fd-row.fd-matches > .fd-cardbtn { width: 122px; }
+
+/* ---- All games: search, shelves ---- */
+.fd-tools { display: flex; flex-direction: column; gap: 10px; }
+.fd-lobby .home-search-input {
+  height: 46px; margin: 0; padding: 0 14px 0 42px; border-radius: 14px; border: 1px solid var(--line);
+  background: rgba(0,0,0,0.24) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A8C3B4' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 14px center / 18px;
+  color: var(--ivory);
+}
+.fd-lobby .home-search-input::placeholder { color: var(--muted); }
+.fd-lobby .home-search-input:focus { border-color: var(--brass); }
+.fd-lobby .home-filter-chips {
+  flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px;
+}
+.fd-lobby .home-filter-chips::-webkit-scrollbar { display: none; }
+.fd-lobby .home-chip {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 15px;
+  border-radius: 999px; background: rgba(0,0,0,0.22); border: 1px solid var(--line); color: var(--ivory);
+  font-family: inherit; font-size: 14px; font-weight: 700;
+}
+.fd-lobby .home-chip svg { width: 14px; height: 14px; }
+.fd-lobby .home-chip .n { color: var(--muted); font-weight: 600; }
+.fd-lobby .home-chip.on { background: var(--stock); border-color: var(--stock); color: var(--ink); }
+.fd-lobby .home-chip.on .n { color: #5B5446; }
+.fd-shelf-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.fd-shelf-h h3 {
+  display: flex; align-items: center; gap: 9px; margin: 0;
+  font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 21px; color: var(--ivory);
+}
+.fd-shelf-h h3 svg { width: 16px; height: 16px; color: var(--brass); }
+.fd-lobby .fd-shelf-h .home-pin-count { margin: 0; font-family: inherit; font-size: 13px; color: var(--muted); }
+.fd-link {
+  background: none; border: 0; padding: 0 4px; min-height: 44px; cursor: pointer;
+  color: var(--brass); font-family: inherit; font-size: 14px; font-weight: 700;
+}
+.fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 24px 14px; padding-top: 14px; }
+.fd-lobby .home-pin-full, .fd-lobby .home-fav-empty, .fd-lobby .home-search-empty {
+  margin: 14px 0 0; color: var(--muted); font-size: 14px;
+}
+
+/* ---- The open card: it grows from its place and turns over ---- */
+.fd-ov {
+  --muted: rgba(251,246,234,0.74); --line: rgba(251,246,234,0.16); --ivory: #F3EBD8;
+  --brass: #D9B35E; --brass-ink: #2A1E05; --stock: #FBF6EA; --ink: #1C1A17;
+  position: fixed; inset: 0; z-index: 60; color: var(--ivory);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.fd-ov-scrim {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; padding: 0;
+  background: rgba(4,12,9,0.68); cursor: pointer; opacity: 1; transition: opacity 0.3s ease;
+}
+.fd-ph-from .fd-ov-scrim, .fd-ph-back .fd-ov-scrim, .fd-ph-fade .fd-ov-scrim { opacity: 0; }
+.fd-fc { position: absolute; z-index: 1; perspective: 1800px; }
+.fd-ph-open .fd-fc, .fd-ph-back .fd-fc {
+  transition: left 0.62s cubic-bezier(0.3,0.7,0.2,1), top 0.62s cubic-bezier(0.3,0.7,0.2,1),
+              width 0.62s cubic-bezier(0.3,0.7,0.2,1), height 0.62s cubic-bezier(0.3,0.7,0.2,1);
+}
+.fd-fc-flip { position: absolute; inset: 0; transform-style: preserve-3d; }
+.fd-ph-open .fd-fc-flip, .fd-ph-back .fd-fc-flip { transition: transform 0.62s cubic-bezier(0.45,0.05,0.2,1); }
+/* At rest the 3D is OFF (see DeckOpenCard): perspective and preserve-3d would
+   each make this the containing block of every fixed sheet inside it. */
+.fd-fc.flat { perspective: none; }
+.fd-fc.flat .fd-fc-flip { transform-style: flat; }
+.fd-fc-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.fd-fc-front { container-type: size; display: grid; place-items: center; pointer-events: none; }
+.fd-fc-front .fd-card { width: min(100cqw, calc(100cqh * 9 / 14)); box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 26px 60px rgba(0,0,0,0.55); }
+.fd-fc-back {
+  transform: rotateY(180deg); overflow: hidden; border-radius: 28px; color: var(--ivory);
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.42)),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 11px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 11px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+}
+.fd-fc.flat .fd-fc-back { transform: none; }
+.fd-back-frame { position: absolute; inset: 8px; z-index: 1; border: 1px solid rgba(251,246,234,0.26); border-radius: 21px; pointer-events: none; }
+.fd-back-scroll { position: absolute; inset: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.fd-back-scroll::-webkit-scrollbar { display: none; }
+.fd-back-body { display: flex; flex-direction: column; gap: 16px; padding: 26px 22px 28px; }
+.fd-ph-from .fd-back-body, .fd-ph-from .fd-back-x { opacity: 0; }
+.fd-ph-open .fd-back-body, .fd-ph-open .fd-back-x { opacity: 1; transition: opacity 0.28s ease 0.42s; }
+.fd-ph-back .fd-back-body, .fd-ph-back .fd-back-x { opacity: 0; transition: opacity 0.12s ease; }
+.fd-ph-fade .fd-fc { opacity: 0; transition: opacity 0.2s ease; }
+.fd-back-x {
+  position: absolute; top: 36px; right: 32px; z-index: 3; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(20,14,10,0.5); border: 1px solid rgba(251,246,234,0.2); color: var(--ivory);
+}
+.fd-back-x svg { width: 18px; height: 18px; }
+.fd-back-x[data-pressed] { background: rgba(20,14,10,0.7); }
+.fd-head { display: flex; flex-direction: column; gap: 14px; }
+.fd-thumb {
+  position: relative; display: block; width: 100%; aspect-ratio: 2 / 1; overflow: hidden; border-radius: 14px;
+  box-shadow: 0 0 0 2px rgba(251,246,234,0.92), 0 10px 22px rgba(0,0,0,0.3);
+}
+.fd-thumb .fd-scene { inset: auto; left: 0; top: 50%; width: 100%; aspect-ratio: 3 / 2; transform: translateY(-50%); }
+.fd-titles { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fd-kicker {
+  display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(251,246,234,0.8);
+}
+.fd-kicker svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.fd-pname { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1.05; color: var(--ivory); letter-spacing: 0; margin: 0; }
+.fd-pstat { font-size: 13px; font-weight: 700; color: var(--brass); }
+.fd-pdesc { font-size: 14.5px; line-height: 1.5; color: var(--ivory); opacity: 0.9; margin: 0; }
+.fd-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(0,0,0,0.28); }
+.fd-tab {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px;
+  border-radius: 10px; border: 0; background: transparent; color: var(--muted);
+  font-family: inherit; font-weight: 800; font-size: 14px; cursor: pointer;
+}
+.fd-tab svg { width: 16px; height: 16px; }
+.fd-tab.on { background: var(--stock); color: var(--ink); }
+.fd-tab[data-pressed]:not(.on) { background: rgba(255,255,255,0.08); }
+.fd-blurb { font-size: 13.5px; line-height: 1.45; color: var(--muted); margin: 0; }
+.fd-nomodes, .fd-played-wrap { display: flex; flex-direction: column; gap: 14px; }
+.fd-played {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px;
+  background: rgba(217,179,94,0.14); box-shadow: inset 0 0 0 1px rgba(217,179,94,0.5);
+}
+.fd-played-ic { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center; background: #D9B35E; color: #2A1E05; font-weight: 800; font-size: 18px; }
+.fd-played b { display: block; font-weight: 800; font-size: 16px; }
+.fd-played span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.fd-played .mono { display: inline; color: var(--ivory); }
+.fd-duo, .fd-actions { display: flex; gap: 8px; }
+.fd-actions { padding-top: 14px; border-top: 1px solid var(--line); }
+.fd-ghost {
+  flex: 1; min-height: 44px; padding: 0 10px; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); color: var(--ivory);
+  font-family: inherit; font-weight: 700; font-size: 13.5px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.fd-ghost.on { border-color: #D9B35E; color: #D9B35E; }
+.fd-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+.fd-ghost[data-pressed] { background: rgba(255,255,255,0.08); }
+.fd-play { margin: 0; }
+
+/* The pre-game panel on the card's back (PreGameScreen variant="deck"): the
+   same controls, on felt. */
+.pregame-card.deck {
+  max-width: none; margin: 0; padding: 0; background: none; border: 0; border-radius: 0; text-align: left;
+  color: var(--ivory); display: flex; flex-direction: column; gap: 14px;
+}
+.pregame-card.deck > * { margin-top: 0; margin-bottom: 0; }
+.pregame-card.deck .pregame-chips { justify-content: flex-start; }
+.pregame-card.deck .pregame-chip { background: rgba(0,0,0,0.22); border-color: var(--line); color: var(--muted); }
+.pregame-card.deck .pregame-stats { justify-content: stretch; gap: 8px; }
+.pregame-card.deck .pregame-stat { max-width: none; background: rgba(0,0,0,0.2); border-color: var(--line); text-align: left; padding: 10px 12px; }
+.pregame-card.deck .pregame-stat .l { color: var(--muted); }
+.pregame-card.deck .pregame-stat .v { color: var(--ivory); }
+.pregame-card.deck .pregame-deal { background: rgba(0,0,0,0.18); border-color: var(--line); color: var(--ivory); }
+.pregame-card.deck .pregame-bands { margin-top: 0; }
+.pregame-card.deck .pregame-bands-label, .pregame-card.deck .pregame-band-note { color: var(--muted); }
+.pregame-card.deck .pregame-band { background: rgba(0,0,0,0.2); border-color: var(--line); color: var(--ivory); }
+.pregame-card.deck .pregame-band.on { background: rgba(217,179,94,0.16); border-color: #D9B35E; color: #D9B35E; }
+.pregame-card.deck .pregame-band.done { color: #9BD6A8; border-color: rgba(155,214,168,0.45); }
+.pregame-card.deck .pregame-band[data-pressed] { background: rgba(255,255,255,0.08); }
+.pregame-bands.deck-rows { display: flex; flex-direction: column; gap: 8px; }
+.pregame-band-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 9px 14px;
+  border-radius: 14px; background: rgba(0,0,0,0.18); border: 1px solid var(--line);
+  color: var(--ivory); font-family: inherit; text-align: left; cursor: pointer;
+}
+.pregame-band-opt.on { border-color: #D9B35E; background: rgba(217,179,94,0.16); }
+.pregame-band-opt:disabled { opacity: 0.45; cursor: not-allowed; }
+.pregame-band-opt[data-pressed] { background: rgba(255,255,255,0.08); }
+.pbo-radio { width: 20px; height: 20px; flex: 0 0 auto; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(251,246,234,0.6); }
+.pregame-band-opt.on .pbo-radio { box-shadow: inset 0 0 0 6px #D9B35E; }
+.pbo-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pbo-t { font-weight: 800; font-size: 15px; }
+.pbo-s { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.pbo-m { margin-left: auto; padding-left: 8px; font-weight: 800; font-size: 14px; color: #D9B35E; white-space: nowrap; }
+.pregame-card.deck .pregame-resume-note { color: #D9B35E; }
+.pregame-card.deck .pregame-play, .fd-nomodes .fd-play {
+  min-height: 50px; border-radius: 999px; background: #D9B35E; color: #2A1E05; border: 0;
+  font-family: inherit; font-weight: 800; font-size: 16px; box-shadow: 0 2px 0 #9C7A2E, 0 10px 22px rgba(0,0,0,0.28);
+}
+.pregame-card.deck .pregame-play[data-pressed], .fd-nomodes .fd-play[data-pressed] { background: #C9A24D; }
+/* Play stays in reach: pinned to the foot of the card's back while the panel
+   above it scrolls, and back in its place once you reach it. */
+.pregame-card.deck .pregame-play { position: sticky; bottom: 14px; z-index: 2; }
+.pregame-card.deck .pregame-practice { background: transparent; border: 1px solid var(--line); color: var(--ivory); border-radius: 999px; }
+.pregame-card.deck .pregame-signedout { color: var(--muted); }
+.pregame-card.deck .pregame-actions, .fd-nomodes .pregame-actions { margin-top: 0; }
+.fd-ov .pregame-howto-btn { background: transparent; border-color: var(--line); color: var(--ivory); border-radius: 999px; font-size: 13px; }
+@media (hover: hover) {
+  .fd-ov .pregame-howto-btn:hover, .fd-ghost:hover { border-color: #D9B35E; color: #D9B35E; }
+}
+
+/* 700px is where the open card stops filling the phone (deckOpenGeometry):
+   from there it is a big card, its picture a square beside the name. */
+@media (min-width: 700px) {
+  .fd-back-body { padding: 32px 30px 30px; }
+  .fd-head { flex-direction: row; align-items: center; padding-right: 48px; }
+  .fd-thumb { flex: 0 0 auto; width: 84px; height: 84px; aspect-ratio: auto; border-radius: 12px; }
+  .fd-thumb .fd-scene { left: 50%; top: 0; width: auto; height: 100%; transform: translateX(-50%); }
+  .fd-pname { font-size: 34px; }
+  .fd-back-x { top: 16px; right: 16px; }
+}
+
+@media (min-width: 900px) {
+  .lobby.fd-lobby { gap: 44px; padding: 32px calc(32px + var(--pc-safe-right)) 64px calc(32px + var(--pc-safe-left)); }
+  .fd-sec-head h2 { font-size: 30px; }
+  .fd-sec-head h2.minor { font-size: 24px; }
+  .fd-hero { padding: 26px 30px 30px; }
+  .fd-hero-in {
+    grid-template-columns: 210px minmax(0, 1fr); grid-template-areas: "card top" "card info" "card btn";
+    grid-template-rows: auto 1fr auto; column-gap: 44px; row-gap: 16px;
+  }
+  .fd-hero-cardwrap { padding: 10px 0 10px 10px; }
+  .fd-hero-info { align-self: center; }
+  .fd-hero-name { font-size: 46px; }
+  .fd-hero-desc { font-size: 16px; }
+  .fd-hero-btn { width: auto; justify-self: start; padding: 0 32px; }
+  .fd-today { max-width: 520px; }
+  .fd-stat { padding: 14px 20px 16px; }
+  .fd-num { font-size: 28px; }
+  .fd-row-nav { display: flex; }
+  .fd-row { margin: 0 -8px; padding: 14px 8px 18px; scroll-padding-inline: 8px; }
+  .fd-row > .fd-cardbtn { width: 176px; }
+  .fd-row.fd-matches > .fd-cardbtn { width: 150px; }
+  .fd-tools { flex-direction: row; align-items: center; justify-content: space-between; }
+  .fd-lobby .home-search-input { width: 340px; order: 2; }
+  .fd-lobby .home-filter-chips { margin: 0; padding: 0; }
+  .fd-shelf-h { margin-top: 30px; }
+  .fd-shelf-h h3 { font-size: 23px; }
+  .fd-shelf-h .fd-link { display: none; }
+  .fd-row.fd-shelf {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 28px 22px;
+    overflow: visible; margin: 0; padding: 16px 0 0; -webkit-mask-image: none; mask-image: none;
+  }
+  .fd-row.fd-shelf > .fd-cardbtn { width: auto; }
+  .fd-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 28px 22px; }
+}
+
+/* Settings → What's new (its way in since the lobby's "New this week" strip
+   was retired). Themed like the rest of the sheet. */
+.settings-whatsnew {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 48px; margin-top: 0.9rem;
+  padding: 0.6rem 0.85rem; background: ${C.card}; border: 1px solid ${C.border}; border-radius: 12px;
+  color: ${C.text}; font-family: inherit; font-size: 0.92rem; font-weight: 600; text-align: left; cursor: pointer;
+}
+.settings-whatsnew .sw-sub { margin-left: auto; color: ${C.muted}; font-size: 0.78rem; font-weight: 500; }
+.settings-whatsnew .sw-go { color: ${C.muted}; font-size: 1.1rem; line-height: 1; }
+.settings-whatsnew[data-pressed] { background: var(--c-well); }
+/* A match card's second line names the opponent and the clock: two lines. */
+.fd-matches .fd-sub2 { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 `;
