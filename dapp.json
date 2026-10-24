@@ -137,6 +137,17 @@
       "expectText": "Classic games, fresh every day."
     },
     {
+      "name": "Home masthead shows the streak line (#372)",
+      "path": "/?demo=streak",
+      "expectSelector": ".masthead .home-streak[data-streak='10'] .mult-badge",
+      "visual": true,
+      "id": "home.streak-line",
+      "impact": [
+        "public/src/30-app-root.jsx",
+        "public/src/01-styles.jsx"
+      ]
+    },
+    {
       "name": "Leaderboard seed boots cleanly",
       "path": "/?demo=leaderboard",
       "expectText": "All Games"

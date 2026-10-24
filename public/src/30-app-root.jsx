@@ -2758,6 +2758,18 @@ function App() {
                     masthead names the paper; it does not argue for it. */}
                 <p>Classic games, fresh every day.</p>
                 <div className="masthead-rule" />
+                {/* #372 — the viewer's current run, at a glance. Reads the
+                    server-backed `streak` App already holds; it is status, not
+                    a control, so it is not a button. Hidden while the day is
+                    still loading (streak unknown), signed out, and at 0 days —
+                    the same rule the nav follows for its multiplier tag. */}
+                {authOk && !loading && streak > 0 && (
+                  <div className="home-streak mono" data-streak={streak}>
+                    <span className="hs-flame" aria-hidden="true">🔥</span>
+                    <span>{streak}-day streak</span>
+                    {activeMult > 1 && <span className="mult-badge">×{activeMult}</span>}
+                  </div>
+                )}
               </div>
               {commitNotice && (
                 <div className="commit-notice" onClick={() => setCommitNotice(null)}>{commitNotice}</div>

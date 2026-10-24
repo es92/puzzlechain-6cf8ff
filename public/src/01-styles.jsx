@@ -4207,6 +4207,18 @@ ${emitTapHighlightRules()}
   border-top: 2px solid ${C.text}; border-bottom: 1px solid ${C.text};
 }
 .lobby-head.masthead p { font-style: italic; font-family: 'Fraunces', Georgia, serif; }
+/* #372 — the home streak line. Same brass as the nav streak stat and the
+   card-streak pill (gold is this app's reserved streak colour); the ×N tag is
+   the nav's own .mult-badge, reused rather than restyled. */
+.lobby-head.masthead .home-streak {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  margin-top: 0.6rem;
+  font-size: 0.78rem; font-weight: 600;
+  color: ${C.gold};
+  font-variant-numeric: tabular-nums;
+}
+.lobby-head.masthead .home-streak .hs-flame { font-size: 0.85rem; line-height: 1; }
+.lobby-head.masthead .home-streak .mult-badge { margin-left: 0.1rem; }
 
 /* Section headers as newspaper column rules. The base rule lives in the
    Phase 7 block above (one declaration; the count rides at the right edge). */
