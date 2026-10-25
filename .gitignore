@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+.env
+.env.*
+public/app.js
+
+# in-loop browser scratch output
+.playwright-mcp/

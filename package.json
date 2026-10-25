@@ -1,0 +1,22 @@
+{
+  "name": "puzzlechain-6cf8ff",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PuzzleChain",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node scripts/build.js",
+    "check": "node scripts/check-jsx.js && node scripts/check-registry.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-react": "^7.24.0",
+    "esbuild": "^0.23.1"
+  }
+}

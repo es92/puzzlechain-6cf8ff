@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FAF6EE">
+
+  <script>
+  // Theme pre-paint applier. Runs BEFORE any style block so a dark-mode
+  // player never sees an ivory flash. Deliberately duplicates the key name
+  // and resolution rule from app.jsx's theme module (THEME_KEY /
+  // resolveTheme) — keep the two in sync if either changes.
+  (function () {
+    try {
+      var pref = null;
+      try { pref = localStorage.getItem('puzzlechain_theme'); } catch (_) {}
+      if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+      var resolved = pref;
+      if (pref === 'system') {
+        var dark = false;
+        try {
+          dark = !!(window.matchMedia &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches);
+        } catch (_) {}
+        resolved = dark ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-pref', pref);
+      if (resolved === 'dark') {
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', '#0A0D14');
+      }
+    } catch (_) {}
+  })();
+  </script>
+
+  <script>
+  // usernode-dev-console@1
+  (function () {
+    if (window.__usernodeDevConsole) return;
+    window.__usernodeDevConsole = true;
+    var S = '__usernodeDevConsole';
+    function serialize(v, depth) {
+      depth = depth || 0;
+      try {
+        if (v === undefined) return 'undefined';
+        if (v === null) return 'null';
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+        if (typeof v === 'function') return '[Function ' + (v.name || 'anonymous') + ']';
+        if (v instanceof Error) return (v.stack || (v.name + ': ' + v.message));
+        if (depth > 3) return '[…]';
+        var seen = new WeakSet();
+        return JSON.stringify(v, function (k, val) {
+          if (typeof val === 'object' && val !== null) {
+            if (seen.has(val)) return '[Circular]';
+            seen.add(val);
+          }
+          if (typeof val === 'function') return '[Function ' + (val.name || 'anonymous') + ']';
+          if (val instanceof Error) return val.stack || (val.name + ': ' + val.message);
+          return val;
+        });
+      } catch (e) { try { return String(v); } catch (_) { return '[unserializable]'; } }
+    }
+    function post(level, args, meta) {
+      try {
+        var payload = {
+          sentinel: S,
+          level: level,
+          args: Array.prototype.slice.call(args).map(function (a) { return serialize(a); }),
+          ts: Date.now(),
+          url: location.href,
+        };
+        if (meta) for (var k in meta) payload[k] = meta[k];
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(payload, '*');
+        }
+      } catch (_) {}
+    }
+    ['log','info','warn','error','debug'].forEach(function (level) {
+      var orig = console[level] ? console[level].bind(console) : function () {};
+      console[level] = function () { post(level, arguments); orig.apply(null, arguments); };
+    });
+    window.addEventListener('error', function (e) {
+      var msg = (e.error && (e.error.stack || e.error.message)) || e.message || 'Error';
+      post('error', [msg], { source: e.filename || '', line: e.lineno || 0, col: e.colno || 0, kind: 'error' });
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e.reason;
+      var msg = (r && (r.stack || r.message)) || String(r);
+      post('error', [msg], { kind: 'unhandledrejection' });
+    });
+    try { post('info', ['[dev-console ready]'], { kind: 'ready' }); } catch (_) {}
+  })();
+  </script>
+  <title>Game Corner</title>
+  <!-- Inline data-URI favicon so the browser never requests /favicon.ico,
+       which the JWT auth gate would 401 (and that 401 logs a console error
+       tripping the no-console-errors check). -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23312E81'/%3E%3Crect x='2' y='8.5' width='28' height='15' rx='4' fill='%2318181B'/%3E%3Crect x='3' y='9.5' width='26' height='13' rx='3' fill='%23E4E4E7'/%3E%3Crect x='7.5' y='11.5' width='3' height='9' fill='%2318181B'/%3E%3Crect x='4.5' y='14.5' width='9' height='3' fill='%2318181B'/%3E%3Ccircle cx='21.2' cy='17.8' r='2.4' fill='%23DC2626' stroke='%2318181B' stroke-width='.8'/%3E%3Ccircle cx='26' cy='14.3' r='2.4' fill='%23DC2626' stroke='%2318181B' stroke-width='.8'/%3E%3C/svg%3E">
+
+  <!-- Boot-shell styles only. Self-contained: these must work even when
+       app.jsx fails to load/compile, so they do NOT depend on the app's
+       design system. Keyframes can't be inlined per-element, hence this
+       small block. -->
+  <style>
+    html, body { margin: 0; }
+    /* Same forwarded-inset tokens the app uses (see 01-styles.jsx): the bridge
+       publishes --un-safe-inset-* on <html> and leaves them unset standalone,
+       where the env() fallback is correct. The boot shell must not sit under
+       the home indicator either. */
+    :root {
+      --pc-safe-top: var(--un-safe-inset-top, env(safe-area-inset-top, 0px));
+      --pc-safe-right: var(--un-safe-inset-right, env(safe-area-inset-right, 0px));
+      --pc-safe-bottom: var(--un-safe-inset-bottom, env(safe-area-inset-bottom, 0px));
+      --pc-safe-left: var(--un-safe-inset-left, env(safe-area-inset-left, 0px));
+    }
+    body {
+      background: #FAF6EE; color: #1F2B47;
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    }
+    #boot-loader {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1rem;
+      padding: calc(1.5rem + var(--pc-safe-top)) calc(1.5rem + var(--pc-safe-right))
+               calc(1.5rem + var(--pc-safe-bottom)) calc(1.5rem + var(--pc-safe-left));
+    }
+    #boot-loader .pc-spinner {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 3px solid rgba(11,122,112,0.22); border-top-color: #0B7A70;
+      animation: pc-spin 0.8s linear infinite;
+    }
+    #boot-loader .pc-loading-text { color: #5E6A87; font-size: 0.9rem; letter-spacing: 0.02em; }
+    @keyframes pc-spin { to { transform: rotate(360deg); } }
+    .pc-boot-error {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; box-sizing: border-box;
+      padding: calc(1.5rem + var(--pc-safe-top)) calc(1.5rem + var(--pc-safe-right))
+               calc(1.5rem + var(--pc-safe-bottom)) calc(1.5rem + var(--pc-safe-left));
+      overflow-y: auto;
+    }
+    .pc-boot-error .card {
+      max-width: 26rem; width: 100%; box-sizing: border-box; text-align: center;
+      background: #FFFFFF; border: 1px solid #E7DFCC; border-radius: 1rem;
+      padding: 1.75rem 1.5rem;
+    }
+    .pc-boot-error .glyph { font-size: 2.2rem; line-height: 1; margin-bottom: 0.75rem; }
+    .pc-boot-error h1 { font-size: 1.2rem; margin: 0 0 0.5rem; color: #1F2B47; }
+    .pc-boot-error p { margin: 0 0 1.25rem; color: #5E6A87; font-size: 0.92rem; line-height: 1.45; }
+    .pc-boot-error .btns { display: flex; flex-direction: column; gap: 0.6rem; }
+    .pc-boot-error button {
+      font: inherit; font-size: 0.92rem; padding: 0.6rem 1rem; border-radius: 0.6rem;
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .pc-boot-error .primary { background: #0B7A70; color: #fff; }
+    .pc-boot-error .secondary { background: transparent; color: #5E6A87; border-color: #E7DFCC; }
+    .pc-boot-error .secondary.done { color: #1E8F63; border-color: #bfd9c9; }
+    .pc-boot-error textarea {
+      width: 100%; box-sizing: border-box; margin-top: 0.9rem; height: 5.5rem; resize: vertical;
+      background: #F3EDDF; color: #5E6A87; border: 1px solid #E7DFCC; border-radius: 0.5rem;
+      padding: 0.5rem; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.72rem;
+    }
+
+    /* Dark boot shell. Hex values are duplicated from app.jsx's PALETTES.dark
+       on purpose: this block must still work when app.jsx fails to load, so it
+       cannot depend on the app's design system. */
+    html[data-theme="dark"] { color-scheme: dark; }
+    html[data-theme="dark"] body { background: #0A0D14; color: #ECEFF6; }
+    html[data-theme="dark"] #boot-loader .pc-spinner {
+      border-color: rgba(14,140,128,0.24); border-top-color: #0E8C80;
+    }
+    html[data-theme="dark"] #boot-loader .pc-loading-text { color: #8B95A8; }
+    html[data-theme="dark"] .pc-boot-error .card { background: #181D29; border-color: #2A3342; }
+    html[data-theme="dark"] .pc-boot-error h1 { color: #ECEFF6; }
+    html[data-theme="dark"] .pc-boot-error p { color: #8B95A8; }
+    html[data-theme="dark"] .pc-boot-error .primary { background: #0E8C80; color: #fff; }
+    html[data-theme="dark"] .pc-boot-error .secondary { color: #8B95A8; border-color: #2A3342; }
+    html[data-theme="dark"] .pc-boot-error .secondary.done { color: #34D399; border-color: #2f6b52; }
+    html[data-theme="dark"] .pc-boot-error textarea {
+      background: #12161F; color: #8B95A8; border-color: #2A3342;
+    }
+  </style>
+
+  <!-- Phase 8 (#128) — usernode-native UI kit. Centrally hosted, NEVER vendored:
+       fixes ship platform-side and propagate on the next page load. Sets
+       html.un-ios / .un-android / .un-desktop and exposes window.unNative.
+       Scope of adoption is CHROME ONLY (sheets, dialogs, toasts, safe areas,
+       screen transitions) — no native motion on boards, cells, cards or
+       canvases, because the kit's own fidelity rules forbid animating
+       high-frequency interactions and it would fight the tap primitive.
+       The viewport meta above already carries viewport-fit=cover. -->
+  <!-- PLATFORM ORIGIN. These three tags are the centrally hosted bridge and
+       native kit; they are deliberately NOT vendored, and must not be.
+
+       The host moved from social-vibecoding.usernodelabs.org to
+       my.onhomeroom.com when the platform migrated. The old host no longer
+       serves these paths at all: it answers them 200 with text/html (a page,
+       not the file), so the bridge tag parsed as HTML and the app lost both
+       the bridge and the native kit while still appearing to load. Normally a
+       host move is absorbed centrally and no app is redeployed; that was not
+       available here, so the URL is updated per the conventions' own
+       "when migrating IS the task swap it to that URL".
+
+       If the platform ever injects USERNODE_DOMAIN into app containers, this
+       should derive from it instead of being hard-coded. -->
+  <link rel="stylesheet" href="/usernode-native/v1/native.css">
+  <script src="/usernode-native/v1/native.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="/usernode-bridge/v1/bridge.js"></script>
+  <!-- Phase 7 (#144) — the SERVER'S turn-based rules registry, served verbatim
+       from lib/board-rules.js and published as window.boardRules. Loaded BEFORE
+       the app bootstrap so local pass-and-play / Versus Bot can referee with the
+       exact same pure functions the online rooms use, instead of a client-side
+       reimplementation that would eventually disagree about a legal move. -->
+  <script src="/board-rules.js"></script>
+  <script src="/usernode-loading.js"></script>
+  <script src="/usernode-usernames.js"></script>
+</head>
+<body>
+  <div id="root">
+    <!-- Lightweight pre-mount loading state so the gap between page open and
+         React mount isn't a frozen blank screen. React replaces #root's
+         contents on mount, removing this. -->
+    <div id="boot-loader">
+      <div class="pc-spinner"></div>
+      <div class="pc-loading-text">Loading Game Corner…</div>
+    </div>
+  </div>
+  <!-- app.jsx is pre-compiled to app.js by esbuild at build time (see Dockerfile).
+       Loading it as a plain script avoids Babel Standalone’s 500 KB deoptimisation
+       warning while keeping the same global-scope React classic-script runtime. -->
+  <script>
+    (function () {
+      if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+        document.getElementById('root').innerHTML =
+          '<div class="pc-boot-error"><div class="card"><div class="glyph">⬢</div>' +
+          '<h1>Game Corner couldn\'t start</h1>' +
+          '<p>React failed to load. Check your connection and reload.</p>' +
+          '<div class="btns"><button type="button" class="primary" onclick="location.reload()">Reload</button></div>' +
+          '</div></div>';
+        return;
+      }
+      // Watchdog: surface an error card if the app hasn't mounted within 15 s.
+      window.__pcWatchdog = setTimeout(function () {
+        var root = document.getElementById('root');
+        var mounted = window.__puzzlechainMounted ||
+          (root && root.firstElementChild && root.firstElementChild.id !== 'boot-loader');
+        if (!mounted) {
+          root.innerHTML =
+            '<div class="pc-boot-error"><div class="card"><div class="glyph">⬢</div>' +
+            '<h1>Game Corner couldn\'t start</h1>' +
+            '<p>This is taking longer than usual — check your connection and reload.</p>' +
+            '<div class="btns"><button type="button" class="primary" onclick="location.reload()">Reload</button></div>' +
+            '</div></div>';
+        }
+      }, 15000);
+    })();
+  </script>
+  <script src="/app.js" onerror="clearTimeout(window.__pcWatchdog);document.getElementById('root').innerHTML='<div class=pc-boot-error><div class=card><div class=glyph>⬢</div><h1>Game Corner couldn\'t start</h1><p>Failed to load app. Try reloading.</p><div class=btns><button class=primary onclick=location.reload()>Reload</button></div></div></div>'"></script>
+</body>
+</html>
