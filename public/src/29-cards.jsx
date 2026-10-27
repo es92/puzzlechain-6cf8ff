@@ -340,17 +340,11 @@ function cardHowTo(card) {
    drifting costs a stale tooltip rather than a wrong outcome. */
 const PIN_LIMIT = 8;
 
-/* ============================================================
-   The card
-   ============================================================
-   One button per mode, or a single tap target when a card has no play modes
-   (the head-to-head games, whose axis is the opponent picker inside the game).
-   ============================================================ */
 /* The card's all-time figure (myScores from /api/my/scores), in the
    pts -> best -> record priority, read across every registry id the card
    speaks for (a merged pair carries two: Snake / Daily Snake and friends).
-   Returns null when nothing is recorded so the state line is unchanged —
-   a signed-out visitor or a game never played renders exactly as before. */
+   Shown under the name on the back of an opened card; null when nothing is
+   recorded (a signed-out visitor, a game never played), and then nothing is. */
 const cardMyScoreBit = (card, myScores) => {
   if (!myScores) return null;
   const ids = new Set(card.modes.map(m => m.gameId));
@@ -373,119 +367,3 @@ const cardMyScoreBit = (card, myScores) => {
   return null;
 };
 
-function GameCard({ card, attempts, bests, storyProgress, myScores, loading, onPlay, pinned, onTogglePin, pinDisabled, streak, bestStreak, favorited, onToggleFavorite }) {
-  const dailyId = cardDailyId(card);
-  const attempt = dailyId ? attempts[dailyId] : null;
-  const finished = !!(attempt && attempt.finishedAt);
-  const inProgress = !!(attempt && !attempt.finishedAt);
-  // #362 — the all-time best daily streak, never below the current one so a
-  // streaking player reads "you are at your record" when they tie it.
-  const best = Math.max(bestStreak || 0, streak || 0);
-  const howto = cardHowTo(card);
-
-  // State line, per recommendation 04: the card reports where you stand
-  // instead of spending its width on buttons that repeat the mode labels.
-  const bits = [];
-  if (dailyId) bits.push(finished ? 'Daily ✓' : inProgress ? 'Daily ▶' : 'Daily · new');
-  // #313, extended by #362 — a signed-in player's current streak rides on every card that offers
-  // a daily (the merged cards included: cardDailyId covers them). Zero stays
-  // off the card: a 0-day streak is not information the card needs, and the
-  // nav stat still shows it.
-  const storyMode = card.modes.find(m => m.mode === 'story');
-  if (storyMode) {
-    const p = (storyProgress && storyProgress[storyMode.gameId]) || null;
-    if (p && p.total) bits.push(`Story ${p.cleared}/${p.total}`);
-    else bits.push('Story');
-  }
-  // All-time figure LAST, so any assertion on the line's leading segments
-  // ("Daily ✓", "Story 3/10") keeps passing when it appears.
-  const scoreBit = cardMyScoreBit(card, myScores);
-  if (scoreBit) bits.push(scoreBit);
-
-  /* EVERY CARD ENDS IN A BUTTON. A card with one way to play used to be one
-     big tap target instead, which made the grid inconsistent to read and to
-     use: two cards side by side, one with labelled buttons and one where the
-     art itself is the button, and no way to tell which without trying. The
-     head-to-head games have exactly one way to play — against an opponent —
-     so they get exactly one button that says so. */
-  const singleModes = card.modes.length
-    ? card.modes
-    : [{ mode: null, gameId: card.gameId, caption: card.playCaption, label: 'Play' }];
-
-  return (
-    <div className="card paired" style={{ '--accent': card.tagColor, '--accent-tint': card.tagColor + '24' }} role="group" aria-label={card.name}>
-      {onTogglePin && (
-        <button
-          className={'card-pin tappable' + (pinned ? ' on' : '')}
-          aria-pressed={pinned ? 'true' : 'false'}
-          aria-label={pinned ? `Unpin ${card.name}` : `Pin ${card.name} to top`}
-          title={pinned ? 'Unpin' : pinDisabled ? `Pin limit reached (${PIN_LIMIT})` : 'Pin to top'}
-          disabled={!pinned && pinDisabled}
-          {...tapProps(() => { onTogglePin(cardPinId(card), !pinned); }, { disabled: !pinned && pinDisabled })}
-        >📌</button>
-      )}
-      {onToggleFavorite && (
-        <button
-          className={'card-fav tappable' + (favorited ? ' on' : '')}
-          aria-pressed={favorited ? 'true' : 'false'}
-          aria-label={favorited ? `Remove ${card.name} from favorites` : `Add ${card.name} to favorites`}
-          title={favorited ? 'Remove from favorites' : 'Add to favorites'}
-          {...tapProps(() => { onToggleFavorite(cardAnchorId(card), !favorited); })}
-        >{favorited ? '★' : '☆'}</button>
-      )}
-      {dailyId && (
-        <span className={'card-daily-badge' + (finished ? ' done' : inProgress ? ' resume' : ' fresh')}>
-          {finished ? '✓ PLAYED' : inProgress ? '▶ RESUME' : 'NEW TODAY'}
-        </span>
-      )}
-      <div className="card-icon">{card.icon}</div>
-      <div className="card-name">{card.name}</div>
-      <div className="card-desc">{card.desc}</div>
-      {howto && (
-        <div className="card-howto" title={howto}>
-          <strong>How to play:</strong> {howto}
-        </div>
-      )}
-      {/* #313 — the state footer. The tag and the streak pill share one row;
-          without the wrapper the pill (a flex item like the tag) drops to
-          its own line and pushes the buttons down. */}
-      <div className="card-footer">
-        <span className="tag mono" style={{ background: card.tagColor + '22', color: card.tagColor }}>
-          {card.tag}
-        </span>
-        {dailyId && streak > 0 && (
-          <span className="card-streak mono" data-streak={streak} data-best={best} title={`${streak}-day streak · best ${best} day${best === 1 ? '' : 's'}`}>
-            <span className="cs-flame" aria-hidden="true">🔥</span>
-            <span>{streak}</span>
-            <span className="cs-days">d</span>
-            {/* #362 — the record the current streak is chasing, in the same
-                gold pill; "best N" shows even when it equals the streak. */}
-            <span className="cs-best">· best {best}</span>
-          </span>
-        )}
-      </div>
-      {bits.length > 0 && <div className="card-state mono">{bits.join(' · ')}</div>}
-      <div className={'card-modes n' + singleModes.length}>
-        {singleModes.map(m => {
-          const isDaily = m.mode === 'daily';
-          const state = isDaily ? (finished ? 'done' : inProgress ? 'resume' : 'fresh') : '';
-          const label = m.label || PLAY_MODES[m.mode].label;
-          const caption = m.caption
-            || (isDaily ? (finished ? 'Played' : inProgress ? 'Resume' : 'One try') : null)
-            || (m.mode === 'story' ? 'Levels' : m.mode === 'arcade' ? 'Endless' : null);
-          return (
-            <button
-              key={m.mode || 'play'}
-              className={`card-mode-btn tappable ${m.mode || 'single'} ${state}`}
-              aria-label={`${card.name} — ${label}`}
-              {...tapProps(() => { if (!loading) onPlay(m.gameId, m.mode); })}
-            >
-              <span className="cmb-label">{label}</span>
-              <span className="cmb-caption">{caption}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}

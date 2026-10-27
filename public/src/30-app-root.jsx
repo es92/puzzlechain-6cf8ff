@@ -83,30 +83,6 @@ function ShareButton({ text }) {
   );
 }
 
-/* One-tap light/dark switch for the top bar, beside the Settings gear. Reads
-   `resolved` (not `pref`) so it offers the opposite of what is actually
-   showing even while the pref is 'system', and `setPref(next)` pins that
-   choice through the same applyTheme path Settings uses — ThemeChoice, the
-   canvas boards and the pre-paint script all follow for free. Its own
-   useTheme() subscription keeps the icon in step when the theme changes from
-   Settings, ?theme= or an OS flip. */
-function NavThemeToggle() {
-  const { resolved, setPref } = useTheme();
-  const next = resolved === 'dark' ? 'light' : 'dark';
-  const label = next === 'dark' ? 'Switch to dark theme' : 'Switch to light theme';
-  return (
-    <button
-      type="button"
-      className="nav-theme-btn"
-      title={label}
-      aria-label={label}
-      data-theme-next={next}
-      {...tapProps(() => { setPref(next); cgSound('click'); })}
-    >
-      {next === 'dark' ? '🌙' : '☀'}
-    </button>
-  );
-}
 
 function App() {
   const [screen, setScreen] = useState(() => {
@@ -165,6 +141,16 @@ function App() {
      navState field: a star changes which cards the active chip shows, not
      which screen you are on, so it must not push a history entry. */
   const [favorites, setFavorites] = useState([]);
+  /* The flip-deck lobby's open card: { key, mode, story, arcade, daily, src,
+     closing }, null when no card is open. The pre-game panel on the card's back
+     keeps its OWN mode and bands (null = the default) and writes them into
+     App's playMode / storyBand / … only when Play is pressed. Those fields are
+     part of navState's page key: changing them under the open card would push
+     a history entry per tab and scroll the lobby to the top behind it (#239).
+     The open card itself is an overlay in navState, like Settings, so device
+     back closes it. */
+  const [deckOpen, setDeckOpen] = useState(null);
+  const [deckArcadeBest, setDeckArcadeBest] = useState(null);
   // The viewer's standing on the arcade band currently selected, so the
   // pre-game screen can show what there is to beat before the run starts.
   const [arcadeBest, setArcadeBest] = useState(null);
@@ -253,8 +239,11 @@ function App() {
   // links now preselect the matching chip instead of being ignored, which is
   // also what keeps the existing "/?tab=classic" proposal checks meaningful.
   const [homeFilter, setHomeFilter] = useState(() => {
+    // The chips are the deck's shelves (Puzzles, Words, …) plus Favorites. The
+    // retired Daily / Classic chips' links (?tab=daily|classic) land on All:
+    // the dailies have their own row above the shelves now.
     const t = new URLSearchParams(window.location.search).get('tab');
-    return t === 'daily' || t === 'classic' || t === 'favorites' ? t : 'all';
+    return DECK_SHELF_IDS.indexOf(t) !== -1 || t === 'favorites' ? t : 'all';
   });
   /* ?favview=1 preselects the Favorites chip. Deliberately separate from
      ?tab=favorites: ?tab= is a REAL chip a player can reach by tapping, and
@@ -285,14 +274,10 @@ function App() {
   // Phase 8 "make it count": banner shown after a pending anonymous run was
   // retroactively committed on an authenticated load.
   const [commitNotice, setCommitNotice] = useState(null);
-  // What's-new sheet + the dismissible "New this week" strip. Dismissal is
-  // deliberately per-page-load (plain state, no persistence): ✕ hides the
-  // strip for this visit only, and it reappears on the next refresh — the
-  // strip's "See all ›" is the only entry point to the weekly sheet.
+  // What's-new sheet, opened from Settings (the "New this week" strip on the
+  // lobby was retired with the flip-deck redesign).
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [wnDismissed, setWnDismissed] = useState(false);
-  const dismissWhatsNew = () => setWnDismissed(true);
   // Incremented to trigger MinesweeperGame reset on Play Again
   const [playAgainKey, setPlayAgainKey] = useState(0);
   /* #185 — auto-advance between Ladder bands. One object drives the whole
@@ -408,8 +393,13 @@ function App() {
     storyBand: Number.isFinite(storyBand) ? storyBand : 0,
     arcadeBandId: navPrimitive(arcadeBandId),
     dailyBandId: navPrimitive(dailyBandId),
-    overlay: settingsOpen ? 'settings' : howToGame ? 'howto' : chatGame ? 'chat' : whatsNewOpen ? 'whatsnew' : null,
-    overlayArg: navPrimitive(howToGame ? howToGame.id : chatGame ? (chatGame.id || chatGame) : null),
+    /* The open card counts only on the lobby: leaving for a game takes it
+       away (the effect below clears it a render later), and that must not
+       write a second history entry for the game screen. */
+    overlay: settingsOpen ? 'settings' : howToGame ? 'howto' : chatGame ? 'chat' : whatsNewOpen ? 'whatsnew'
+      : deckOpen && screen === 'lobby' ? 'card' : null,
+    overlayArg: navPrimitive(howToGame ? howToGame.id : chatGame ? (chatGame.id || chatGame)
+      : deckOpen && screen === 'lobby' ? deckOpen.key : null),
   };
   const navKey = JSON.stringify(navState);
 
@@ -471,6 +461,7 @@ function App() {
         // Popped past our first entry — land on home rather than a blank state.
         setScreen('lobby'); setCurrentGame(null); setReviewMode(false);
         setSettingsOpen(false); setHowToGame(null); setChatGame(null); setWhatsNewOpen(false);
+        setDeckOpen(null);
         return;
       }
       // Overlays first: closing one is the cheapest back step.
@@ -478,6 +469,16 @@ function App() {
       setWhatsNewOpen(s.overlay === 'whatsnew');
       setHowToGame(s.overlay === 'howto' ? (GAMES.find(g => g.id === s.overlayArg) || null) : null);
       setChatGame(s.overlay === 'chat' ? (GAMES.find(g => g.id === s.overlayArg) || null) : null);
+      /* The open card comes back without its animation (there is no card on
+         screen to grow from) and goes away at once: a close that animated
+         would finish after this pop and push an entry of its own. A card that
+         is already open stays as it is — a pop off the How-to-Play sheet it
+         opened lands back on it. */
+      setDeckOpen((prev) => {
+        if (s.overlay !== 'card' || !CARD_BY_KEY[s.overlayArg]) return null;
+        if (prev && prev.key === s.overlayArg) return { ...prev, closing: false };
+        return { key: s.overlayArg, mode: null, story: null, arcade: null, daily: null, src: null, closing: false };
+      });
       setLobbyTab(s.lobbyTab || 'home');
       setSelectedUserId(s.selectedUserId || null);
       setReviewMode(!!s.reviewMode);
@@ -926,19 +927,6 @@ function App() {
     setWinData(null);
     setLoseData(null);
     setScreen('pregame');
-  };
-
-  /* Recently Played (Recent goal) — one tap back into a game from the strip.
-     Head-to-head cards route through the opponent picker like their lobby
-     buttons do (a room cannot be auto-joined); everything else goes through
-     launchGame, so a daily replay lands on its own pre-game/locked flow and a
-     classic mounts straight away. Same guard pattern as the card buttons. */
-  const replayRecent = (gameId) => {
-    if (loading || !authOk) return;
-    const g = GAMES.find(x => x.id === gameId);
-    if (!g) return;
-    if (g.modeSelect) { openOpponentScreen(g); return; }
-    launchGame(g);
   };
 
   // Claim (or resume) the day's single attempt and mount the game. Extracted
@@ -2101,7 +2089,7 @@ function App() {
     setClassicLastResult(null);
     setPreLaunchGame(null);
     if (typeof tab !== 'string' || !tab) return;
-    if (tab === 'daily' || tab === 'classic') { setLobbyTab('home'); setHomeFilter(tab); }
+    if (tab === 'daily' || tab === 'classic') { setLobbyTab('home'); setHomeFilter('all'); }
     else if (tab === 'ladder' || tab === 'home') setLobbyTab(tab);
   };
 
@@ -2514,21 +2502,133 @@ function App() {
     }
   };
 
-  // Reward level surfaced in the nav. Suppressed when signed out so we
-  // never show a multiplier the server can't back.
-  const activeMult = authOk ? streakMultiplier(streak) : 1;
+  // The lobby's home is felt in both themes; the html element carries it too so
+  // the overscroll areas match (see .felt-page in the stylesheet).
+  const deckFelt = screen === 'lobby' && lobbyTab !== 'ladder';
+  useEffect(() => {
+    document.documentElement.classList.toggle('felt-page', deckFelt);
+  }, [deckFelt]);
 
-  // Phase 7 home derivations. featuredGame resolves the server's daily_featured
-  // row against the client registry; inProgressItems merges resumable daily
-  // runs with the viewer's active online matches for the in-progress row.
+  // Home derivations. featuredGame resolves the server's daily_featured row
+  // against the client registry; matchItems are the viewer's online matches
+  // (waiting or active, from /api/rooms/mine) for the Your matches row.
   const featuredGame = featured ? GAMES.find((g) => g.id === featured.gameId) : null;
-  const inProgressItems = [
-    ...GAMES.filter((g) => g.daily && attempts[g.id] && !attempts[g.id].finishedAt)
-      .map((g) => ({ type: 'daily', game: g })),
-    ...myRooms
-      .map((r) => ({ type: 'room', room: r, game: GAMES.find((g) => g.id === r.gameId) }))
-      .filter((x) => x.game),
-  ];
+  const matchItems = myRooms
+    .map((r) => {
+      const game = GAMES.find((g) => g.id === r.gameId);
+      return { room: r, game, card: game ? CARD_BY_GAME_ID[game.id] : null };
+    })
+    .filter((x) => x.card);
+
+  /* ---- The open card (flip-deck lobby) ----
+     Opening a card is NOT navigation: the lobby stays the page, and the card's
+     back is the game's pre-game panel. Its mode and bands live on `deckOpen`
+     (null = the default) until Play, when they are written into App state and
+     the run starts exactly as the pre-game screen's own Play starts it. */
+  const openDeckCard = (card, faceEl, preferMode) => {
+    if (loading || !card) return;
+    let src = null;
+    try {
+      const r = faceEl && faceEl.getBoundingClientRect ? faceEl.getBoundingClientRect() : null;
+      if (r && r.width > 0) src = { x: r.left, y: r.top, w: r.width };
+    } catch (e) {}
+    const mode = preferMode && card.modes.some(m => m.mode === preferMode) ? preferMode : null;
+    setDeckOpen({ key: card.key, mode, story: null, arcade: null, daily: null, src, closing: false });
+  };
+  const closeDeckCard = () => setDeckOpen(d => (d && !d.closing ? { ...d, closing: true } : d));
+  const setDeck = (patch) => setDeckOpen(d => (d ? { ...d, ...patch } : d));
+  const deckCard = deckOpen ? CARD_BY_KEY[deckOpen.key] || null : null;
+  /* The tab a card opens on: today's daily while it is still to play, else the
+     first other way to play, else the (finished) daily. */
+  const deckMode = !deckCard ? null : (deckOpen.mode || (() => {
+    const daily = deckDailyState(deckCard, attempts);
+    if (daily && daily !== 'done') return 'daily';
+    const other = deckCard.modes.find(m => m.mode !== 'daily');
+    return other ? other.mode : (deckCard.modes[0] ? deckCard.modes[0].mode : null);
+  })());
+  const deckEntry = deckCard && deckMode ? deckCard.modes.find(m => m.mode === deckMode) : null;
+  const deckGame = deckCard ? GAMES.find(g => g.id === (deckEntry ? deckEntry.gameId : deckCard.gameId)) || null : null;
+  const deckStoryBand = deckOpen && deckOpen.story != null ? deckOpen.story : (deckGame ? nextUnclearedBand(deckGame.id) : 0);
+  const deckArcadeBand = (deckOpen && deckOpen.arcade) || arcadeBandId;
+  const deckDailyBand = (deckOpen && deckOpen.daily) || dailyBandId;
+  /* The panel's ways out leave the card open: it goes when the screen
+     changes (the effect below). A daily's Play waits on its /start claim, and
+     closing the card first would leave a lobby-without-card history entry in
+     between, so back from the game would not return to the card. */
+  const deckPlay = () => {
+    if (!deckGame || loading) return;
+    const g = deckGame, mode = deckMode;
+    // The state launchGame prepares for the pre-game screen, then that
+    // screen's Play: one path into a run, whichever door it came through.
+    endPracticeRun();
+    allowProgressSave(g.id);
+    setPlayMode(mode);
+    if (mode === 'story') setStoryBand(deckStoryBand);
+    if (mode === 'arcade') setArcadeBandId(deckArcadeBand);
+    if (mode === 'daily') setDailyBand(deckDailyBand);
+    setCurrentGame(g);
+    setWinData(null);
+    setLoseData(null);
+    setPracticeMode(false);
+    setArcadeReplaySeed(null);
+    startRun(g, { mode, arcadeBand: deckArcadeBand, dailyBand: deckDailyBand });
+  };
+  // A card with no play modes: the head-to-head games go to their opponent
+  // screen, Escape from Dracula opens straight into its reader.
+  const deckStart = () => {
+    if (!deckGame || loading) return;
+    const g = deckGame;
+    if (g.modeSelect) { openOpponentScreen(g); return; }
+    setClassicGameMode(null);
+    setClassicGameModeOpts(null);
+    launchGame(g);
+  };
+  // A played daily's "See today's result" is the locked result screen.
+  const deckSeeResult = () => {
+    if (!deckGame) return;
+    launchGame(deckGame, 'daily');
+  };
+
+  /* The arcade tab's "Best on this band", the same read the pre-game screen
+     makes for itself (see the effect above), for the card that is open. */
+  useEffect(() => {
+    if (!deckOpen || deckMode !== 'arcade' || !deckGame || !authOk) {
+      setDeckArcadeBest(null);
+      return;
+    }
+    let live = true;
+    api(`/api/arcade/${deckGame.id}/leaderboard?band=${encodeURIComponent(deckArcadeBand)}`)
+      .then(r => { if (live && r.ok && r.body) setDeckArcadeBest(r.body.me || null); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [deckOpen && deckOpen.key, deckMode, deckGame && deckGame.id, deckArcadeBand, authOk]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Leaving the lobby takes the open card with it (Play, a deep link, …).
+  useEffect(() => {
+    if (screen !== 'lobby' || lobbyTab !== 'home') setDeckOpen(null);
+  }, [screen, lobbyTab]);
+
+  /* ?card=<game id or card key> opens that card on the lobby, already turned
+     over, and ?cmode=daily|story|arcade picks its tab; ?card=gotd is whatever
+     today's Game of the day is. The card's back is otherwise reachable only by
+     a tap, which proposal checks and before/after screenshots cannot make.
+     Consumed once, after the day has loaded (the tab a card opens on depends
+     on today's attempts, and gotd on today's featured game). */
+  const deckLinkedRef = useRef(false);
+  useEffect(() => {
+    if (loading || deckLinkedRef.current) return;
+    deckLinkedRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('card');
+    if (!id || params.get('game')) return;
+    const card = id === 'gotd'
+      ? (featuredGame ? CARD_BY_GAME_ID[featuredGame.id] : null)
+      : CARD_BY_KEY[id] || CARD_BY_KEY['card:' + id] || CARD_BY_GAME_ID[id];
+    if (!card) return;
+    const cm = params.get('cmode');
+    setDeckOpen({ key: card.key, mode: card.modes.some(m => m.mode === cm) ? cm : null, story: null, arcade: null, daily: null, src: null, closing: false });
+  }, [loading]);
+
   // Re-enter an active online match from the in-progress row: pre-seat the
   // player (roomId + seat number) through the classic game-mode opts so
   // BoardRoomGame / Chutes & Ladders skip the create/join setup screen.
@@ -2660,58 +2760,29 @@ function App() {
        deep link, where depth 0 is the difference between falling back to the
        lobby and stepping the embedding page out of the app. */
     <div className={'app' + (fitActive ? ' app-fit' : '')} data-nav-depth={navDepthTick}>
-      <nav className="nav">
-        <div className="nav-brand"><span className="logo">⬢</span><span className="brandword">Game Corner</span></div>
+      <nav className={'nav' + (deckFelt ? ' felt' : '')}>
+        <div className="nav-brand">
+          <span className="logo" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="26" height="26"><circle cx="16" cy="16" r="15" fill="#D9B35E" /><circle cx="16" cy="16" r="13.6" fill="none" stroke="#2A1E05" strokeWidth="3" strokeDasharray="4 4.8" opacity="0.35" /><circle cx="16" cy="16" r="9.5" fill="#C29A45" /><circle cx="16" cy="16" r="5" fill="#2A1E05" opacity="0.8" /></svg>
+          </span>
+          <span className="brandword">Game Corner</span>
+        </div>
+        {/* The bar is the mark and your profile, nothing else (flip-deck
+            redesign). The day's score and streak are the lobby's Today strip;
+            Friends and Settings are on your profile, and the theme is in
+            Settings. A signed-out visitor has no profile, so the Settings
+            gear stands in for it — it is where the theme lives. */}
         <div className="nav-right">
-          <div className="nav-stats">
-            <div className="nav-stat">
-              <div className="label">Score</div>
-              <div className="value score mono">{totalScore}</div>
-            </div>
-            <div className="nav-stat">
-              <div className="label">Streak</div>
-              <div className="value streak mono">
-                {streak}
-                {authOk && activeBadge(streak) && (
-                  <span
-                    className="streak-badge-icon"
-                    title={`${activeBadge(streak).name} — ${activeBadge(streak).min}-day streak badge`}
-                  >
-                    {activeBadge(streak).icon}
-                  </span>
-                )}
-                {activeMult > 1 && <span className="mult-badge">×{activeMult}</span>}
-              </div>
-            </div>
-          </div>
-          {authOk && (
+          {!loading && (!authOk || !user) && (
             <button
-              className="primary-btn nav-friends-btn"
-              style={{
-                background: 'transparent',
-                border: `1px solid ${C.border}`,
-                color: C.text,
-                padding: '0.4rem 0.8rem',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                borderRadius: '8px'
-              }}
-              onClick={() => setScreen('friends')}
+              className="nav-settings-btn"
+              title="Settings"
+              aria-label="Settings"
+              onClick={() => setSettingsOpen(true)}
             >
-              👥 Friends
+              ⚙
             </button>
           )}
-          {/* Outside the authOk guard on purpose: a signed-out visitor should
-              still be able to pick a theme. */}
-          <NavThemeToggle />
-          <button
-            className="nav-settings-btn"
-            title="Settings"
-            aria-label="Settings"
-            onClick={() => setSettingsOpen(true)}
-          >
-            ⚙
-          </button>
           <AccountChip
             loading={loading}
             authOk={authOk}
@@ -2742,7 +2813,7 @@ function App() {
       )}
 
       {screen === 'lobby' && (
-        <div className="lobby screen-in">
+        <div className={'lobby screen-in' + (deckFelt ? ' fd-lobby' : '')}>
           {lobbyTab === 'ladder' ? (
             <React.Fragment>
               <button className="home-back-btn" onClick={() => setLobbyTab('home')}>← Home</button>
@@ -2755,419 +2826,335 @@ function App() {
               {!loading && <LadderScreen />}
             </React.Fragment>
           ) : (
-            /* Phase 7 home: GotD hero → Today's Top Scores → in-progress row →
-               all-games grid. The old three-tab lobby is retired; the Rating
-               Ladder remains reachable via the ?tab=ladder deep link. */
+            /* The flip-deck home: Game of the day → Today (streak, points) →
+               Today's dailies → Your matches → All games, on felt. Every game
+               is a card and the card is the way in: it opens (DeckOpenCard)
+               into the pre-game panel. The Rating Ladder remains reachable via
+               the ?tab=ladder deep link. */
             <React.Fragment>
-              <div className="lobby-head masthead">
-                {/* Numbered-edition dateline (Appendix A masthead). The edition
-                    counts up one per UTC day from the same server-anchored day
-                    number the dailies use, so every visitor sees the same issue. */}
-                <div className="masthead-dateline">
-                  <span>No. {utcDayNum(offset) - 20000} · {new Date(Date.now() + offset).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</span>
-                </div>
-                <h1>Game Corner</h1>
-                {/* #237 — one line, and a short one. This used to run to two
-                    sentences that sold the app to someone already inside it
-                    ("free to play — no ads, no pay-to-win") and then restated
-                    the reset time, which the hero's own "Next puzzle in"
-                    countdown says a few hundred pixels further down. A
-                    masthead names the paper; it does not argue for it. */}
-                <p>Classic games, fresh every day.</p>
-                <div className="masthead-rule" />
-                {/* #372 — the viewer's current run, at a glance. Reads the
-                    server-backed `streak` App already holds; it is status, not
-                    a control, so it is not a button. Hidden while the day is
-                    still loading (streak unknown), signed out, and at 0 days —
-                    the same rule the nav follows for its multiplier tag. */}
-                {authOk && !loading && streak > 0 && (
-                  <div className="home-streak mono" data-streak={streak}>
-                    <span className="hs-flame" aria-hidden="true">🔥</span>
-                    <span>{streak}-day streak</span>
-                    {activeMult > 1 && <span className="mult-badge">×{activeMult}</span>}
-                  </div>
-                )}
-              </div>
               {commitNotice && (
                 <div className="commit-notice" onClick={() => setCommitNotice(null)}>{commitNotice}</div>
               )}
-              {!wnDismissed && (
-                <div className="whatsnew-strip">
-                  <button className="wn-strip-body" onClick={() => setWhatsNewOpen(true)}>
-                    🗞️ <strong>New this week:</strong> {CHANGELOG[0].items[0]} <span className="wn-more">See all ›</span>
-                  </button>
-                  <button className="wn-strip-dismiss" title="Dismiss" onClick={dismissWhatsNew}>✕</button>
-                </div>
-              )}
-              {loading && !featuredGame ? (
-                /* Review round 1: hold the hero's footprint while /api/daily
-                   is in flight, so the grid doesn't jump when the panel
-                   arrives. Static skeleton — no motion, so the reduce-motion
-                   lists need no entry. */
-                <div className="gotd-hero gotd-skel" aria-hidden="true">
-                  <div className="gotd-skel-tile" />
-                  <div className="gotd-skel-info">
-                    <div className="gotd-skel-bar w1" />
-                    <div className="gotd-skel-bar w2" />
-                    <div className="gotd-skel-bar w3" />
-                  </div>
-                </div>
-              ) : featuredGame ? (
-                <GotdHero
-                  game={featuredGame}
-                  attempt={attempts[featuredGame.id]}
-                  authOk={authOk}
-                  nextResetUtc={nextResetUtc}
-                  offset={offset}
-                  onReset={onReset}
-                  onPlay={() => { if (!loading) launchGame(featuredGame); }}
-                />
-              ) : dailyErr ? (
-                /* Review round 1: a 5xx used to leave nothing where the hero
-                   sits — the lobby looked normal but hollow. Say so, and
-                   offer the refetch, in the same card style. */
-                <div className="gotd-hero gotd-err">
-                  <span className="gotd-err-line">Couldn't load today's game.</span>
-                  <button className="primary-btn gotd-err-retry" onClick={retryDaily}>Try again</button>
-                </div>
-              ) : nextResetUtc ? (
-                <p className="reset-countdown mono">
-                  Next puzzle in {fmtHoursMins(
-                    new Date(nextResetUtc).getTime() - (Date.now() + offset))}
-                </p>
-              ) : null}
-              {/* #295 — the day's dailies as a checkable horizontal strip,
-                  directly under the featured hero. It reads the same
-                  `attempts` map the grid's badges read and launches through
-                  launchGame like a card button, so it needs no state of its
-                  own. Renders THROUGH loading now (review round 1): an
-                  all-unchecked row is the placeholder that stops the page
-                  jumping when the attempts land, and its own loading guard
-                  no-ops the taps while they're in flight. Signed-out
-                  visitors still get it: the chips sit unchecked and a tap
-                  lands on the pre-game screen's sign-in CTA, same as the
-                  grid's cards do. */}
-              <DailyChecklist
-                attempts={attempts}
-                loading={loading}
-                onPlay={(gameId) => {
-                  const g = GAMES.find((x) => x.id === gameId);
-                  if (g) launchGame(g, 'daily');
-                }}
-              />
-              {authOk && (
-                <InProgressRow
-                  items={inProgressItems}
-                  onOpenDaily={(g) => { if (!loading) launchGame(g); }}
-                  onOpenRoom={resumeRoom}
-                />
-              )}
-              {authOk && (
-                <RecentlyPlayedRow
-                  items={recentPlays}
-                  onOpen={replayRecent}
-                  offset={offset}
-                />
-              )}
               {(() => {
-                const gameCard = (g) => {
-                  // Only daily games carry the per-day finished/in-progress lock state.
-                  const a = attempts[g.id];
-                  const finished = !!g.daily && !!(a && a.finishedAt);
-                  const inProgress = !!g.daily && !!a && !finished;
-                  return (
-                    <div
-                      key={g.id}
-                      className={`card${finished ? ' done locked' : ''}${inProgress ? ' inprogress' : ''}`}
-                      style={{ '--accent': g.tagColor }}
-                      onClick={() => {
-                        if (loading) return;
-                        if (g.modeSelect) { openOpponentScreen(g); return; }
-                        launchGame(g);
-                      }}
-                    >
-                      {g.daily && (
-                        <span className={'card-daily-badge' + (finished ? ' done' : inProgress ? ' resume' : ' fresh')}>
-                          {finished ? '✓ PLAYED' : inProgress ? '▶ RESUME' : 'NEW TODAY'}
-                        </span>
-                      )}
-                      <div className="card-icon">{g.icon}</div>
-                      <div className="card-name">{g.name}</div>
-                      <div className="card-desc">{g.desc}</div>
-                      {finished ? (
-                        <div className="card-lock">
-                          🔒 {a.score != null
-                            ? <span>+{a.score} pts · resets in {fmtCountdown(
-                                (nextResetUtc ? new Date(nextResetUtc).getTime() : 0) - (Date.now() + offset))}</span>
-                            : <span>Played · locked until reset</span>}
-                        </div>
-                      ) : inProgress ? (
-                        <div className="card-resume">▶ In progress · resume</div>
-                      ) : (
-                        <span
-                          className="tag mono"
-                          style={{ background: g.tagColor + '22', color: g.tagColor }}
-                        >
-                          {g.tag}
-                        </span>
-                      )}
-                    </div>
-                  );
-                };
-                // One merged list (slice 2). Registry order is preserved
-                // within each group and dailies lead, so the fresh puzzles are
-                // what a player meets first; the corner badge, not a section
-                // heading, is what marks a card as a daily.
-                const registryOrder = [
-                  ...GAMES.filter(g => g.category === 'daily'),
-                  ...GAMES.filter(g => g.category !== 'daily'),
-                ];
-                /* #146 — walk the registry order ONCE, emitting a merged card
-                   the first time either half of a pair is met and skipping the
-                   other half. Because dailies lead, each merged card lands at
-                   its daily half's position (Mancala, whose pair has no daily
-                   registry entry, lands at its classic position).
-
-                   Filtering happens AFTER the merge on purpose: a merged card
-                   is both daily and classic, so it passes every chip. Filtering
-                   GAMES first would break the walk under the 'classic' chip
-                   (the daily half would be gone and the card would move). */
-                /* #176 — the grid is a walk over GAME_CARDS, which is already
-                   in registry order and already merges the four two-id games.
-                   A card with a daily mode passes the Daily chip; one with any
-                   non-daily mode passes Classic; a card with both passes both,
-                   which is why filtering happens on modes rather than on the
-                   registry's category field. */
-                /* The favorite set is resolved BEFORE the filter walks, since
-                   the Favorites chip reads it as its predicate. Same
-                   anchor-id → card-key resolution as the pin set below: a
-                   stored id resolves through CARD_BY_GAME_ID, so either half
-                   of a merged pair lights the one shared card. */
+                /* Everything below reads the same attempts / pins / favorites
+                   the old grid read, so a card can never disagree with the row
+                   or the shelf it also appears in. */
                 const favoriteSet = new Set();
                 for (const id of favorites) {
                   const c = CARD_BY_GAME_ID[id];
                   if (c) favoriteSet.add(c.key);
                 }
-                const starredCount = favoriteSet.size;
-                const ordered = GAME_CARDS.filter(c => {
-                  if (homeFilter === 'all') return true;
-                  const hasDaily = c.modes.some(m => m.mode === 'daily');
-                  if (homeFilter === 'daily') return hasDaily;
-                  if (homeFilter === 'favorites') return favoriteSet.has(c.key);
-                  return !hasDaily || c.modes.some(m => m.mode !== 'daily');
-                });
-                /* One launcher for every card button. `mode` is null for the
-                   head-to-head cards, whose axis is the opponent picker inside
-                   the game rather than this one. launchGame routes a finished
-                   daily to the locked result screen and everything else to the
-                   pre-game screen, so the day's attempt is still claimed only
-                   by the pre-game Play button. */
-                const playCardMode = (gameId, mode) => {
-                  const g = GAMES.find(x => x.id === gameId);
-                  if (!g) return;
-                  if (!mode && g.modeSelect) { openOpponentScreen(g); return; }
-                  if (!mode) { setClassicGameMode(null); setClassicGameModeOpts(null); }
-                  launchGame(g, mode);
-                };
-                /* Pinned (#232) partitions the list the filter ALREADY produced,
-                   so pinning can never change what a chip shows — a pinned card
-                   that fails the active filter is simply absent from both
-                   sections, exactly as it was before it was pinned. Order
-                   inside the pinned section is registry order, not pin
-                   recency: the point is "the games I play a lot are easy to
-                   find", and a section that reshuffles itself as you use it is
-                   the opposite of easy to find. */
                 const pinnedSet = new Set();
                 for (const id of pins) {
                   const c = CARD_BY_GAME_ID[id];
                   if (c) pinnedSet.add(c.key);
                 }
-                /* #350 — the search is a SECOND filter on the already-chip-
-                   filtered list, applied before the pin partition so the two
-                   filters AND together: a card must pass both to appear, and a
-                   pinned card that fails the search is absent from both
-                   sections, exactly as one that fails a chip already is (the
-                   #232 rule — the partition stays lossless). The Daily chip's
-                   done/todo split below derives from restCards, so it narrows
-                   with the search for free. */
-                const searched = ordered.filter(c => homeSearchMatch(c, homeSearch));
-                const pinnedCards = searched.filter(c => pinnedSet.has(c.key));
-                const restCards = searched.filter(c => !pinnedSet.has(c.key));
-                const atPinCap = pins.length >= PIN_LIMIT;
-                const cardProps = (c) => ({
-                  key: c.key,
-                  card: c,
-                  attempts: attempts,
-                  bests: bests,
-                  storyProgress: storyProgress,
-                  myScores: myScores,
-                  // #313 — every daily card shows the player's current streak;
-                  // the same state the nav stat and pre-game panel read.
-                  streak: authOk ? streak : 0,
-                  // #362 — the all-time best rides beside it. max() with the
-                  // live streak so an optimistic bump never shows a best
-                  // below the current streak.
-                  bestStreak: authOk ? Math.max(bestStreak, streak) : 0,
-                  loading: loading,
-                  onPlay: playCardMode,
-                  pinned: pinnedSet.has(c.key),
-                  // Signed-out visitors have nowhere to store a pin, so they
-                  // get no control rather than one that fails on tap.
-                  onTogglePin: authOk ? togglePin : null,
-                  pinDisabled: atPinCap,
-                  favorited: favoriteSet.has(c.key),
-                  // Signed-out visitors have nowhere to store a star, so they
-                  // get no control rather than one that fails on tap — the
-                  // same stance the pin control already takes.
-                  onToggleFavorite: authOk ? toggleFavorite : null,
-                });
+                const starredCount = favoriteSet.size;
+                const dailyCards = GAME_CARDS.filter(c => cardDailyId(c));
+                const doneCount = dailyCards.filter(c => deckDailyState(c, attempts) === 'done').length;
+                const dailyRow = deckDailyOrder(dailyCards, attempts, myScores, featuredGame ? featuredGame.id : null);
+                const featuredCard = featuredGame ? CARD_BY_GAME_ID[featuredGame.id] || null : null;
+                const shelfCards = (id) => GAME_CARDS.filter(c => DECK_SHELF_OF[c.key] === id);
+                /* The chip narrows the shelves to one (or to your favorites);
+                   the search narrows whatever the chip shows. Pinned cards
+                   (#232) sit on their own shelf above the rest and are taken
+                   out of their usual one, so a card appears once. */
+                const chipCards = homeFilter === 'favorites'
+                  ? GAME_CARDS.filter(c => favoriteSet.has(c.key))
+                  : DECK_SHELF_IDS.indexOf(homeFilter) !== -1 ? shelfCards(homeFilter) : GAME_CARDS;
+                const query = homeSearch.trim();
+                const searched = chipCards.filter(c => homeSearchMatch(c, homeSearch));
+                const pinnedCards = homeFilter === 'all' && !query ? GAME_CARDS.filter(c => pinnedSet.has(c.key)) : [];
+                const dailySub = (c) => {
+                  const st = deckDailyState(c, attempts);
+                  if (st === 'live') return { sub: 'In progress', subCls: 'fd-sub go' };
+                  if (st === 'done') {
+                    const a = attempts[cardDailyId(c)];
+                    return { sub: `Played · +${a && a.score != null ? a.score : 0}`, subCls: 'fd-sub' };
+                  }
+                  if (featuredCard && c.key === featuredCard.key) return { sub: 'Game of the day', subCls: 'fd-sub go' };
+                  return {};
+                };
+                const cardBtn = (c, extra) => (
+                  <DeckCardBtn key={c.key} card={c} attempts={attempts} onOpen={(card, el) => openDeckCard(card, el)} {...(extra || {})} />
+                );
+                const scrollRow = (dir) => {
+                  const row = document.querySelector('.fd-dailies');
+                  if (row && row.scrollBy) row.scrollBy({ left: dir * row.clientWidth * 0.8, behavior: cgReducedMotion() ? 'auto' : 'smooth' });
+                };
+                const pipSvg = (suit) => (
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d={DECK_PIP[suit]} fill="currentColor" /></svg>
+                );
+                const ringDash = dailyCards.length ? (doneCount / dailyCards.length) * 44 : 0;
                 return (
                   <React.Fragment>
-                    {pinnedCards.length > 0 && (
-                      <React.Fragment>
-                        <div className="home-section-title home-pinned-title">
-                          📌 Pinned
-                          <span className="home-pin-count">{pins.length}/{PIN_LIMIT}</span>
-                        </div>
-                        <div className="grid home-pinned-grid">
-                          {pinnedCards.map(c => <GameCard {...cardProps(c)} />)}
-                        </div>
-                      </React.Fragment>
-                    )}
-                    {pinNotice && <div className="home-pin-full">{pinNotice}</div>}
-                    <div className="home-section-title home-all-title">
-                      All Games
-                      {/* Poki/CrazyGames-style header: the count of what the
-                          selected chip shows sits at the right edge (pinned
-                          cards included — they match the same filter). */}
-                      <span className="home-pin-count">{ordered.length}</span>
-                    </div>
-                    {/* #350 — type-to-filter above the chips, so the two
-                        narrowing controls read as one row. It ANDs with the
-                        active chip below and with the Pinned section above:
-                        everything this list shows obeys it. Not in
-                        TAPPABLE_CLASSES — a text input keeps native
-                        long-press selection. */}
-                    <input
-                      type="text"
-                      className="home-search-input"
-                      placeholder="Search games"
-                      aria-label="Search games"
-                      value={homeSearch}
-                      onChange={(e) => setHomeSearch(e.target.value)}
-                    />
-                    <div className="home-filter-chips" role="tablist" aria-label="Filter games">
-                      {[
-                        { id: 'all', label: 'All' },
-                        { id: 'daily', label: 'Daily' },
-                        { id: 'classic', label: 'Classic' },
-                        // Only rendered signed in: a signed-out visitor cannot
-                        // star anything, so a chip that always answered "no
-                        // games" would be dead UI. Appears the moment the
-                        // account is known, including at 0 stars.
-                        /* Review round 1: the chip stays visible when the daily load failed
-                           (dailyErr) — the viewer is presumably signed in, the
-                           API just didn't answer, so the backend hiccup must
-                           not hide a control the signed-in lobby carries. */
-                        ...((authOk || dailyErr) ? [{ id: 'favorites', label: 'Favorites' + (starredCount ? ` (${starredCount})` : '') }] : []),
-                      ].map(f => (
-                        <button
-                          key={f.id}
-                          role="tab"
-                          aria-selected={homeFilter === f.id}
-                          className={'home-chip' + (homeFilter === f.id ? ' on' : '')}
-                          onClick={() => setHomeFilter(f.id)}
-                        >{f.label}</button>
-                      ))}
-                    </div>
-                    {authOk && pins.length === 0 && (
-                      <div className="home-pin-empty">
-                        Tap 📌 on any card to pin it to the top.
+                    {loading && !featuredGame ? (
+                      /* Holds the hero's footprint while /api/daily is in
+                         flight, so nothing below jumps when it lands. Static:
+                         no motion, so the reduce-motion lists need no entry. */
+                      <div className="fd-hero fd-hero-skel" aria-hidden="true">
+                        <div className="fd-skel-card" />
+                        <div className="fd-skel-info"><div className="fd-skel-bar w1" /><div className="fd-skel-bar w2" /><div className="fd-skel-bar w3" /></div>
                       </div>
-                    )}
-                    {/* The Favorites chip's empty state, reached the same way
-                        the player reaches the populated one: activate the
-                        chip. Says what to do, in the same register as the
-                        daily split's empty line. */}
-                    {homeFilter === 'favorites' && starredCount === 0 && (
-                      <div className="home-fav-empty">
-                        No favorites yet. Tap the star on a game card to add it here.
+                    ) : featuredGame && featuredCard ? (
+                      <DeckHero
+                        card={featuredCard}
+                        game={featuredGame}
+                        attempts={attempts}
+                        attempt={attempts[featuredGame.id]}
+                        authOk={authOk}
+                        nextResetUtc={nextResetUtc}
+                        offset={offset}
+                        onReset={onReset}
+                        onOpen={(card, el) => openDeckCard(card, el, 'daily')}
+                      />
+                    ) : dailyErr ? (
+                      /* A 5xx used to leave nothing where the hero sits. Say
+                         so, and offer the refetch, in the hero's own frame. */
+                      <div className="fd-hero fd-hero-err">
+                        <span className="fd-err-line">Couldn't load today's game.</span>
+                        <button className="fd-btn fd-err-retry" onClick={retryDaily}>Try again</button>
                       </div>
-                    )}
-                    {(() => {
-                      /* #350 — the search's own empty state: the chip DID have
-                         candidates and none survive the search. A chip that is
-                         empty on its own (Favorites at 0 stars) keeps its own
-                         line above, which explains a different absence. */
-                      if (homeSearch.trim() && searched.length === 0 && ordered.length > 0) {
-                        return (
-                          <div className="home-search-empty">
-                            No games match "{homeSearch.trim()}".
-                          </div>
-                        );
-                      }
-                      /* #226 — under the Daily chip, split the grid into what
-                         is still open today and what is already done. The card
-                         already knows: cardDailyId + attempts[id].finishedAt is
-                         the same pair its own "Daily ✓" badge reads, so this
-                         needs no extra fetch and cannot disagree with the badge.
+                    ) : null}
 
-                         The split only appears once something IS finished, and
-                         only after the attempts have loaded. A signed-out
-                         visitor, and everyone at 00:01 UTC, would otherwise get
-                         a "Not completed (23)" heading over the whole grid and
-                         an empty section under it — a breakdown that breaks
-                         nothing down. */
-                      const dailyDone = (c) => {
-                        const id = cardDailyId(c);
-                        const a = id ? attempts[id] : null;
-                        return !!(a && a.finishedAt);
-                      };
-                      const done = homeFilter === 'daily' && !loading
-                        ? restCards.filter(dailyDone) : [];
-                      if (done.length === 0) {
-                        return (
-                          <div className="grid">
-                            {restCards.map(c => <GameCard {...cardProps(c)} />)}
+                    {authOk && !loading && (
+                      <div className="fd-today" aria-label="Today">
+                        <div className="fd-stat fd-streak" data-streak={streak} data-best={Math.max(bestStreak, streak)}>
+                          <div className="fd-num">
+                            <svg className="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.8 3.4 5 5.4 5 10.2a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.4-4.9.3 1.7 1.1 2.6 2.4 2.9-.4-3 .6-5.6.2-8.2z" /></svg>
+                            {streak}
                           </div>
-                        );
-                      }
-                      const todo = restCards.filter(c => !dailyDone(c));
-                      return (
+                          {/* #362 — the record the streak is chasing rides
+                              beside it, once there is one above it. */}
+                          <div className="fd-lbl2">day streak{Math.max(bestStreak, streak) > streak ? ` · best ${Math.max(bestStreak, streak)}` : ''}</div>
+                        </div>
+                        <div className="fd-stat fd-points">
+                          <div className="fd-num">
+                            <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#B83227" /><circle cx="16" cy="16" r="13" fill="none" stroke="#F3EBD8" strokeWidth="3.5" strokeDasharray="5 5.2" opacity="0.9" /><circle cx="16" cy="16" r="8.5" fill="#9E2A20" stroke="#F3EBD8" strokeWidth="1" strokeOpacity="0.6" /></svg>
+                            {totalScore.toLocaleString()}
+                          </div>
+                          <div className="fd-lbl2">points today</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <section className="fd-sec" aria-labelledby="fd-dl-h">
+                      <div className="fd-sec-head">
+                        <h2 id="fd-dl-h">Today's dailies</h2>
+                        <div className="fd-sec-r">
+                          <span className="fd-count" data-done={doneCount}>
+                            <svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7" className="fd-ring-bg" /><circle cx="9" cy="9" r="7" className="fd-ring-fg" strokeDasharray={`${ringDash} 44`} transform="rotate(-90 9 9)" /></svg>
+                            <b>{doneCount}</b> of {dailyCards.length} played
+                          </span>
+                          <div className="fd-row-nav">
+                            <button type="button" className="fd-rn" aria-label="Scroll the dailies back" onClick={() => scrollRow(-1)}>
+                              <svg className="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+                            </button>
+                            <button type="button" className="fd-rn" aria-label="Scroll the dailies on" onClick={() => scrollRow(1)}>
+                              <svg className="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="fd-hint">The ones you play most come first. Tap a card to open it.</p>
+                      {/* Keyed on what leads the row: a scroll-snapped row keeps
+                          its snap on the SAME card when cards are inserted ahead
+                          of it, so when the day loads and the game of the day
+                          moves to the front, the old row would open scrolled one
+                          card in, hiding it. A new row starts at the start. */}
+                      <div
+                        key={'dl-' + (loading ? 'loading' : (dailyRow[0] ? dailyRow[0].key : ''))}
+                        className="fd-row fd-dailies"
+                        role="list"
+                        aria-label="Today's daily games"
+                      >
+                        {dailyRow.map(c => cardBtn(c, dailySub(c)))}
+                      </div>
+                    </section>
+
+                    {authOk && matchItems.length > 0 && (
+                      /* The only way back into an online match is from here,
+                         so the row stays — and only shows when there is one. */
+                      <section className="fd-sec" aria-labelledby="fd-m-h">
+                        <div className="fd-sec-head"><h2 id="fd-m-h" className="minor">Your matches</h2></div>
+                        <div className="fd-row fd-matches">
+                          {matchItems.map(({ room, card }) => {
+                            const expH = roomExpiresInHours(room);
+                            const sub = room.waiting ? 'Waiting for a player' : room.myTurn ? 'Your turn' : 'Their move';
+                            const sub2 = room.waiting
+                              ? `Room ${room.id}`
+                              : `vs ${room.opponentName}${expH != null ? ` · expires in ${expH}h` : ''}`;
+                            return (
+                              <DeckCardBtn
+                                key={'r-' + room.id}
+                                card={card}
+                                attempts={attempts}
+                                live={!!room.myTurn}
+                                label={`${card.name}: ${sub}, ${sub2}`}
+                                onOpen={() => resumeRoom(room)}
+                                sub={sub}
+                                subCls={room.myTurn ? 'fd-sub go' : 'fd-sub'}
+                                sub2={sub2}
+                                sub2Cls={expH != null && expH <= 6 && !room.waiting ? 'fd-sub2 warn' : 'fd-sub2'}
+                              />
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
+
+                    <section className="fd-sec" aria-labelledby="fd-all-h">
+                      <div className="fd-sec-head"><h2 id="fd-all-h" className="home-all-title">All games</h2></div>
+                      {/* #350 — type-to-filter, then the chips. The input stays
+                          directly before the chips in the DOM (one narrowing
+                          row); on a wide screen the search sits on the right. */}
+                      <div className="fd-tools">
+                        <input
+                          type="text"
+                          className="home-search-input"
+                          placeholder="Search games"
+                          aria-label="Search games"
+                          value={homeSearch}
+                          onChange={(e) => setHomeSearch(e.target.value)}
+                        />
+                        <div className="home-filter-chips" role="tablist" aria-label="Filter games">
+                          {[
+                            { id: 'all', label: 'All', n: GAME_CARDS.length },
+                            ...DECK_SHELVES.map(sh => ({ id: sh.id, label: sh.label, n: shelfCards(sh.id).length, suit: sh.suit })),
+                            /* Signed in only: a signed-out visitor cannot star
+                               anything. Kept when the daily load failed — the
+                               viewer is presumably signed in, the API just
+                               didn't answer. */
+                            ...((authOk || dailyErr) ? [{ id: 'favorites', label: 'Favorites', n: starredCount }] : []),
+                          ].map(f => (
+                            <button
+                              key={f.id}
+                              role="tab"
+                              aria-selected={homeFilter === f.id}
+                              className={'home-chip' + (homeFilter === f.id ? ' on' : '')}
+                              data-chip={f.id}
+                              onClick={() => setHomeFilter(f.id)}
+                            >{f.suit && pipSvg(f.suit)}{f.label} <span className="n">{f.n}</span></button>
+                          ))}
+                        </div>
+                      </div>
+                      {pinNotice && <div className="home-pin-full">{pinNotice}</div>}
+                      {homeFilter === 'favorites' && starredCount === 0 && (
+                        <div className="home-fav-empty">
+                          No favorites yet. Open a game's card and tap Favorite to add it here.
+                        </div>
+                      )}
+                      {query && searched.length === 0 && chipCards.length > 0 && (
+                        <div className="home-search-empty">No games match "{query}".</div>
+                      )}
+                      {(query || homeFilter !== 'all') ? (
+                        searched.length > 0 && (
+                          <div className="fd-grid home-results" data-filter={homeFilter}>
+                            {searched.map(c => cardBtn(c))}
+                          </div>
+                        )
+                      ) : (
                         <React.Fragment>
-                          {/* While searching, an empty todo half would read
-                              "Every daily is done" over a list the search just
-                              hid — untrue. The heading and its line step aside
-                              and only Completed today shows. */}
-                          {!(homeSearch.trim() && todo.length === 0) && (
+                          {pinnedCards.length > 0 && (
                             <React.Fragment>
-                              <div className="home-section-title home-split-title">
-                                Still to play
-                                <span className="home-pin-count">{todo.length}</span>
+                              <div className="fd-shelf-h home-pinned-title">
+                                <h3>📌 Pinned</h3>
+                                <span className="home-pin-count">{pins.length}/{PIN_LIMIT}</span>
                               </div>
-                              {todo.length === 0
-                                ? <div className="home-split-empty">Every daily is done for today — come back after the reset.</div>
-                                : <div className="grid">{todo.map(c => <GameCard {...cardProps(c)} />)}</div>}
+                              <div className="fd-row fd-shelf home-pinned-grid">
+                                {pinnedCards.map(c => cardBtn(c))}
+                              </div>
                             </React.Fragment>
                           )}
-                          <div className="home-section-title home-split-title">
-                            Completed today
-                            <span className="home-pin-count">{done.length}</span>
-                          </div>
-                          <div className="grid home-split-done">
-                            {done.map(c => <GameCard {...cardProps(c)} />)}
-                          </div>
+                          {DECK_SHELVES.map(sh => {
+                            const cards = shelfCards(sh.id).filter(c => !pinnedSet.has(c.key));
+                            if (!cards.length) return null;
+                            return (
+                              <React.Fragment key={sh.id}>
+                                <div className="fd-shelf-h" data-shelf={sh.id}>
+                                  <h3>{pipSvg(sh.suit)}{sh.label}</h3>
+                                  <button type="button" className="fd-link" onClick={() => setHomeFilter(sh.id)}>See all {shelfCards(sh.id).length}</button>
+                                </div>
+                                <div className="fd-row fd-shelf">
+                                  {cards.map(c => cardBtn(c))}
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
                         </React.Fragment>
-                      );
-                    })()}
-                    {/* #234 — Today's Top Scores reads AFTER the games now.
-                        It is a result of playing, not a way in, and at 135px
-                        directly under the hero it was one of the four blocks
-                        keeping every game card off the first screen. */}
-                    {authOk && !loading && (
-                      <TodayChampions
-                        onSelectUser={(userId) => { setSelectedUserId(userId); setScreen('profile'); }}
-                      />
+                      )}
+                    </section>
+
+                    {deckOpen && deckCard && (
+                      <DeckOpenCard
+                        key={deckCard.key}
+                        card={deckCard}
+                        icons={deckIconSpec(deckCard, attempts)}
+                        src={deckOpen.src}
+                        closing={!!deckOpen.closing}
+                        onClose={closeDeckCard}
+                        onClosed={() => setDeckOpen(null)}
+                        labelId="fd-open-name"
+                      >
+                        <DeckPanelHead card={deckCard} labelId="fd-open-name" stat={authOk ? cardMyScoreBit(deckCard, myScores) : null} />
+                        <DeckModeTabs
+                          card={deckCard}
+                          mode={deckMode}
+                          dailyDone={deckDailyState(deckCard, attempts) === 'done'}
+                          onMode={(m) => setDeck({ mode: m, story: null })}
+                        />
+                        {!deckCard.modes.length ? (
+                          <DeckNoModes
+                            card={deckCard}
+                            onStart={deckStart}
+                            onHowTo={() => setHowToGame(deckGame)}
+                            onChat={authOk && deckGame ? () => setChatGame(deckGame) : undefined}
+                          />
+                        ) : deckGame && deckMode === 'daily' && attempts[deckGame.id] && attempts[deckGame.id].finishedAt ? (
+                          <DeckPlayed
+                            attempt={attempts[deckGame.id]}
+                            nextResetUtc={nextResetUtc}
+                            offset={offset}
+                            onReset={onReset}
+                            onSeeResult={deckSeeResult}
+                            onPractice={deckGame.daily ? () => startPractice(deckGame, { fresh: true, band: deckDailyBand }) : null}
+                          />
+                        ) : deckGame ? (
+                          <PreGameScreen
+                            variant="deck"
+                            game={deckGame}
+                            attempt={attempts[deckGame.id]}
+                            best={bests[deckGame.id]}
+                            streak={streak}
+                            authOk={authOk}
+                            nextResetUtc={nextResetUtc}
+                            offset={offset}
+                            onReset={onReset}
+                            onPlay={deckPlay}
+                            onPractice={deckGame.daily ? (band) => startPractice(deckGame, { fresh: true, band }) : null}
+                            playMode={deckMode}
+                            storyProgress={storyProgress}
+                            storyBand={deckStoryBand}
+                            onStoryBand={(i) => setDeck({ story: i })}
+                            arcadeBandId={deckArcadeBand}
+                            onArcadeBand={(b) => setDeck({ arcade: b })}
+                            arcadeBest={deckArcadeBest}
+                            onReplayRun={(run) => replayArcadeRun(deckGame, run)}
+                            dailyBandId={deckDailyBand}
+                            onDailyBand={(b) => setDeck({ daily: b })}
+                            onHowTo={() => setHowToGame(deckGame)}
+                            onChat={authOk ? () => setChatGame(deckGame) : undefined}
+                          />
+                        ) : null}
+                        <DeckPanelActions
+                          card={deckCard}
+                          favorited={favoriteSet.has(deckCard.key)}
+                          onFavorite={authOk ? toggleFavorite : null}
+                          pinned={pinnedSet.has(deckCard.key)}
+                          onPin={authOk ? togglePin : null}
+                          pinDisabled={pins.length >= PIN_LIMIT}
+                        />
+                      </DeckOpenCard>
                     )}
                   </React.Fragment>
                 );
@@ -3897,7 +3884,12 @@ function App() {
 
       {whatsNewOpen && <WhatsNewSheet onClose={() => setWhatsNewOpen(false)} />}
 
-      {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsSheet
+          onClose={() => setSettingsOpen(false)}
+          onWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }}
+        />
+      )}
 
       {chatGame && (
         <ChatPanel

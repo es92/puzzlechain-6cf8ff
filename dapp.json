@@ -33,9 +33,9 @@
       "expectSelector": ".home-search-input[placeholder=\"Search games\"] + .home-filter-chips"
     },
     {
-      "name": "Searching narrows the grid to the matching game",
+      "name": "Searching narrows the games to the matching card",
       "path": "/?gamesearch=sudoku",
-      "expectSelector": ".grid .card[aria-label=\"Sudoku\"]"
+      "expectSelector": ".home-results .fd-cardbtn[aria-label=\"Sudoku\"]"
     },
     {
       "name": "Search with no match shows the empty line",
@@ -48,14 +48,14 @@
       "expectSelector": ".nav .nav-brand .brandword"
     },
     {
-      "name": "Daily filter splits out what is completed today",
-      "path": "/?tab=daily&demo=locked",
-      "expectText": "Completed today"
+      "name": "A played daily is marked played in the dailies row",
+      "path": "/?demo=locked",
+      "expectText": "Played · +"
     },
     {
-      "name": "Daily filter's completed section holds a card",
+      "name": "The retired Daily filter link lands on All",
       "path": "/?tab=daily&demo=locked",
-      "expectSelector": ".grid.home-split-done .card"
+      "expectSelector": ".home-filter-chips .home-chip.on[data-chip=\"all\"]"
     },
     {
       "name": "Lobby renders",
@@ -63,29 +63,29 @@
       "expectText": "Game Corner"
     },
     {
-      "name": "Locked card after daily attempt",
+      "name": "A played daily shows its check on the card",
       "path": "/?demo=locked",
-      "expectSelector": ".card-daily-badge.done"
+      "expectSelector": ".fd-dailies .fd-cardbtn[data-card=\"card:sudoku\"] .fd-mi.done[data-mode=\"daily\"]"
     },
     {
-      "name": "Daily checklist strip renders on home",
+      "name": "Today's dailies row renders on home",
       "path": "/",
-      "expectSelector": ".dl-row"
+      "expectSelector": ".fd-dailies"
     },
     {
-      "name": "Daily checklist chips list every daily",
+      "name": "Today's dailies row lists the daily games",
       "path": "/",
-      "expectSelector": ".dl-row .dl-check"
+      "expectSelector": ".fd-dailies .fd-cardbtn"
     },
     {
-      "name": "Daily checklist checks off a played daily",
+      "name": "Today's dailies row checks off a played daily",
       "path": "/?demo=locked",
-      "expectSelector": ".dl-row .dl-check.done"
+      "expectSelector": ".fd-dailies .fd-mi.done"
     },
     {
-      "name": "Daily checklist counter renders",
+      "name": "Today's dailies played-count pill renders",
       "path": "/?demo=locked",
-      "expectSelector": ".dl-wrap .home-pin-count"
+      "expectSelector": ".fd-sec-r .fd-count[data-done]"
     },
     {
       "name": "Word Search card in lobby",
@@ -98,9 +98,9 @@
       "expectText": "Daily Cipher"
     },
     {
-      "name": "Lobby shows live reset countdown",
+      "name": "Lobby shows the live new-deal countdown",
       "path": "/",
-      "expectText": "Next puzzle in"
+      "expectSelector": ".fd-hero .fd-hero-top .fd-cd"
     },
     {
       "name": "Streak demo seeds and nav stat renders",
@@ -108,49 +108,44 @@
       "expectText": "Streak"
     },
     {
-      "name": "Daily cards show the streak pill (#313)",
-      "path": "/?demo=streak&tab=daily",
-      "expectSelector": ".card .card-streak[data-streak='10']",
-      "visual": true,
-      "id": "daily-cards.streak-pill",
-      "impact": [
-        "public/src/29-cards.jsx",
-        "public/src/30-app-root.jsx",
-        "public/src/01-styles.jsx"
-      ]
-    },
-    {
-      "name": "Daily streak pill shows the best streak (#362)",
-      "path": "/?demo=streak&tab=daily",
-      "expectSelector": ".card .card-streak[data-streak='10'] .cs-best",
-      "visual": true,
-      "id": "daily-cards.streak-best",
-      "impact": [
-        "public/src/29-cards.jsx",
-        "public/src/30-app-root.jsx",
-        "public/src/01-styles.jsx"
-      ]
-    },
-    {
-      "name": "Masthead tagline renders",
-      "path": "/",
-      "expectText": "Classic games, fresh every day."
-    },
-    {
-      "name": "Home masthead shows the streak line (#372)",
+      "name": "Today strip shows the streak (#313)",
       "path": "/?demo=streak",
-      "expectSelector": ".masthead .home-streak[data-streak='10'] .mult-badge",
+      "expectSelector": ".fd-today .fd-streak[data-streak='10']",
       "visual": true,
-      "id": "home.streak-line",
+      "id": "home.today-streak",
       "impact": [
         "public/src/30-app-root.jsx",
+        "public/src/29b-flip-deck.jsx",
+        "public/src/01-styles.jsx"
+      ]
+    },
+    {
+      "name": "Today strip carries the best streak (#362)",
+      "path": "/?demo=streak",
+      "expectSelector": ".fd-today .fd-streak[data-streak='10'][data-best]"
+    },
+    {
+      "name": "Home names the Game of the day",
+      "path": "/",
+      "expectSelector": ".fd-hero .fd-hero-name"
+    },
+    {
+      "name": "An opened card turns over to its pre-game panel",
+      "path": "/?card=sudoku",
+      "expectSelector": ".fd-ov .fd-fc-back .pregame-card.deck .pregame-band-opt",
+      "visual": true,
+      "id": "home.open-card",
+      "impact": [
+        "public/src/29b-flip-deck.jsx",
+        "public/src/30-app-root.jsx",
+        "public/src/07-ui-chrome.jsx",
         "public/src/01-styles.jsx"
       ]
     },
     {
       "name": "Leaderboard seed boots cleanly",
       "path": "/?demo=leaderboard",
-      "expectText": "All Games"
+      "expectText": "All games"
     },
     {
       "name": "In-progress resume card in lobby",
@@ -163,8 +158,8 @@
       "expectText": "Game Corner"
     },
     {
-      "name": "Mine Finder Classic card in Classic Games tab",
-      "path": "/?tab=classic",
+      "name": "Mine Finder card names Mine Finder Classic",
+      "path": "/?card=minefinder&cmode=arcade",
       "expectText": "Mine Finder Classic"
     },
     {
@@ -228,8 +223,8 @@
       "expectText": "Marble Loop"
     },
     {
-      "name": "Daily Tile Match Puzzle card in lobby",
-      "path": "/",
+      "name": "Tile Match card names the Daily Tile Match Puzzle",
+      "path": "/?card=tilematch",
       "expectText": "Daily Tile Match Puzzle"
     },
     {
@@ -283,18 +278,18 @@
       "expectText": "Centurion"
     },
     {
-      "name": "Today's Top Scores board renders in daily lobby",
-      "path": "/?demo=leaderboard",
-      "expectText": "Today's Top Scores"
+      "name": "A card's leaderboards open from its back",
+      "path": "/?demo=leaderboard&card=sudoku&boards=1",
+      "expectSelector": ".fd-ov .gb-sheet"
     },
     {
-      "name": "Home leads with the games grid",
+      "name": "Home leads with cards that open",
       "path": "/",
-      "expectSelector": ".lobby .grid .card .card-mode-btn"
+      "expectSelector": ".fd-lobby .fd-cardbtn .fd-card .fd-art"
     },
     {
-      "name": "Today's Top Scores lists a seeded solver",
-      "path": "/?demo=leaderboard",
+      "name": "A card's leaderboard lists a seeded solver",
+      "path": "/?demo=leaderboard&card=sudoku&boards=1",
       "expectText": "Staging demo Ada"
     },
     {
@@ -328,9 +323,9 @@
       "expectSelector": ".friends-search-input"
     },
     {
-      "name": "What’s-new strip renders on Home",
-      "path": "/",
-      "expectText": "New this week"
+      "name": "Settings opens What's new",
+      "path": "/?settings=1",
+      "expectSelector": ".settings-panel .settings-whatsnew"
     },
     {
       "name": "Daily Cipher hint demo seeds cleanly",
@@ -438,8 +433,8 @@
       "expectText": "entries"
     },
     {
-      "name": "Friends leaderboard tab shows followed players",
-      "path": "/?demo=friends-lb&lbscope=friends",
+      "name": "Friends leaderboard on a card shows followed players",
+      "path": "/?demo=friends-lb&lbscope=friends&card=sudoku&boards=1",
       "expectText": "Staging friend Nia"
     },
     {
@@ -554,23 +549,23 @@
       "expectText": "GAME OF THE DAY"
     },
     {
-      "name": "All Games header shows how many games the chip shows",
+      "name": "Each filter chip says how many games it shows",
       "path": "/",
-      "expectSelector": ".home-all-title .home-pin-count"
+      "expectSelector": ".home-filter-chips .home-chip.on .n"
     },
     {
-      "name": "Game of the Day icon tile renders in dark mode",
+      "name": "Game of the day card renders in dark mode (the lobby stays felt)",
       "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .gotd-hero .gotd-icon"
+      "expectSelector": "html[data-theme=\"dark\"] .fd-hero .fd-card"
     },
     {
-      "name": "Home shows the merged all-games grid",
+      "name": "Home shows all the games by shelf",
       "path": "/",
-      "expectText": "All Games"
+      "expectText": "All games"
     },
     {
-      "name": "Today's Top Scores shows seeded GotD solvers",
-      "path": "/?demo=gotd",
+      "name": "The Game of the day's leaderboard shows seeded solvers",
+      "path": "/?demo=gotd&card=gotd&boards=1",
       "expectText": "Staging demo Ada"
     },
     {
@@ -674,24 +669,24 @@
       "expectSelector": "html[data-theme=\"light\"] .theme-seg"
     },
     {
-      "name": "Nav carries a settings gear",
+      "name": "Nav carries your profile avatar",
       "path": "/",
-      "expectSelector": ".nav-settings-btn"
+      "expectSelector": ".nav .account-chip.on .avatar"
     },
     {
-      "name": "Nav carries a dark-mode toggle in light theme",
+      "name": "The lobby is felt in the light theme",
       "path": "/?theme=light",
-      "expectSelector": "html[data-theme=\"light\"] .nav-theme-btn[data-theme-next=\"dark\"]"
+      "expectSelector": "html[data-theme=\"light\"] .lobby.fd-lobby"
     },
     {
-      "name": "Nav toggle offers light while dark",
+      "name": "The lobby is felt in the dark theme",
       "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .nav-theme-btn[data-theme-next=\"light\"]"
+      "expectSelector": "html[data-theme=\"dark\"] .lobby.fd-lobby"
     },
     {
       "name": "Dark theme renders the daily lobby",
       "path": "/?theme=dark",
-      "expectText": "All Games",
+      "expectText": "All games",
       "expectSelector": "html[data-theme=\"dark\"] .home-filter-chips"
     },
     {
@@ -751,19 +746,19 @@
       "expectText": "Snakes & Ladders"
     },
     {
-      "name": "Merged grid shows the NEW TODAY daily indicator",
+      "name": "The dailies row shows which dailies are still to play",
       "path": "/?demo=homegrid",
-      "expectText": "NEW TODAY"
+      "expectSelector": ".fd-cardbtn[data-card=\"card:mahjongsol\"] .fd-mi[data-mode=\"daily\"]:not(.done):not(.live)"
     },
     {
-      "name": "Merged grid shows a played daily indicator",
+      "name": "The dailies row shows a played daily",
       "path": "/?demo=homegrid",
-      "expectText": "PLAYED"
+      "expectSelector": ".fd-cardbtn[data-card=\"card:klondike\"] .fd-mi.done[data-mode=\"daily\"]"
     },
     {
-      "name": "Home grid lists multiple game cards",
+      "name": "Home shelves list multiple game cards",
       "path": "/?demo=homegrid",
-      "expectSelector": ".grid > .card + .card"
+      "expectSelector": ".fd-shelf > .fd-cardbtn + .fd-cardbtn"
     },
     {
       "name": "Home filter chips render",
@@ -771,9 +766,9 @@
       "expectSelector": ".home-filter-chips"
     },
     {
-      "name": "Home daily reset countdown renders",
+      "name": "Game of the day banner says what is at stake",
       "path": "/",
-      "expectSelector": ".gotd-hero .gotd-meta"
+      "expectSelector": ".fd-hero .fd-hero-meta"
     },
     {
       "name": "Nonogram canvas board renders in-game",
@@ -1419,54 +1414,54 @@
       "expectText": "Reduced motion"
     },
     {
-      "name": "Merged cards offer two play buttons",
+      "name": "A merged card opens with a tab per way to play",
+      "path": "/?card=minefinder",
+      "expectSelector": ".fd-tabs .fd-tab[data-mode=\"arcade\"]"
+    },
+    {
+      "name": "A card's corner shows its daily still to play",
       "path": "/",
-      "expectSelector": ".card.paired .card-modes"
+      "expectSelector": ".fd-cardbtn .fd-modes .fd-mi[data-mode=\"daily\"]:not(.done)"
     },
     {
-      "name": "Merged card carries a free-play and a daily button",
-      "path": "/",
-      "expectSelector": ".card.paired .card-mode-btn.daily.fresh"
+      "name": "An opened card has a Daily tab",
+      "path": "/?card=snake",
+      "expectSelector": ".fd-tabs .fd-tab[data-mode=\"daily\"]"
     },
     {
-      "name": "Merged cards show a button per play mode",
-      "path": "/?tab=daily",
-      "expectSelector": ".card.paired .card-modes .card-mode-btn.daily"
-    },
-    {
-      "name": "Paired cards appear under the Classic filter",
+      "name": "The retired Classic filter link lands on All",
       "path": "/?tab=classic",
-      "expectSelector": ".card.paired .card-mode-btn.daily"
+      "expectSelector": ".home-filter-chips .home-chip.on[data-chip=\"all\"]"
     },
     {
-      "name": "A finished daily mutes only its own button",
+      "name": "A finished daily checks only the card's Daily icon",
       "path": "/?demo=dualmode",
-      "expectSelector": ".card.paired .card-mode-btn.daily.done"
+      "expectSelector": ".fd-cardbtn[data-card=\"card:snake\"] .fd-mi.done[data-mode=\"daily\"]"
     },
     {
-      "name": "Free play stays live after the daily is done",
+      "name": "Free play stays on offer after the daily is done",
       "path": "/?demo=dualmode",
-      "expectSelector": ".card.paired .card-mode-btn.daily.done ~ .card-mode-btn:not(.done)"
+      "expectSelector": ".fd-cardbtn[data-card=\"card:snake\"] .fd-mi.done[data-mode=\"daily\"] ~ .fd-mi[data-mode=\"arcade\"]:not(.done)"
     },
     {
-      "name": "An unfinished daily offers Resume on the card",
+      "name": "An unfinished daily shows in progress on the card",
       "path": "/?demo=dualmode",
-      "expectSelector": ".card.paired .card-mode-btn.daily.resume"
+      "expectSelector": ".fd-cardbtn[data-card=\"card:bounce\"] .fd-mi.live[data-mode=\"daily\"]"
     },
     {
       "name": "Mine Finder card names both versions",
-      "path": "/",
+      "path": "/?card=minefinder",
       "expectText": "Mine Finder Classic"
     },
     {
-      "name": "Single-mode cards carry one Play button",
-      "path": "/",
-      "expectSelector": ".card-mode-btn.single"
+      "name": "A head-to-head card opens on choosing an opponent",
+      "path": "/?card=checkers",
+      "expectText": "Choose an opponent"
     },
     {
-      "name": "Merged card in dark theme",
+      "name": "Card mode icons in the dark theme",
       "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .card.paired .card-mode-btn.daily"
+      "expectSelector": "html[data-theme=\"dark\"] .fd-cardbtn .fd-mi[data-mode=\"daily\"]"
     },
     {
       "name": "Sudoku has a leaderboards panel with all three boards",
@@ -1615,24 +1610,24 @@
       "expectSelector": ".snake-board"
     },
     {
-      "name": "Games grid renders game cards",
+      "name": "Shelves render game cards",
       "path": "/",
-      "expectSelector": ".grid > .card"
+      "expectSelector": ".fd-shelf > .fd-cardbtn"
     },
     {
-      "name": "Game card clamps its blurb instead of growing",
-      "path": "/",
-      "expectSelector": ".grid > .card .card-desc"
+      "name": "An opened card shows the game's description",
+      "path": "/?card=sudoku",
+      "expectSelector": ".fd-ov .fd-pdesc"
     },
     {
-      "name": "Game card shows a how-to-play line",
-      "path": "/",
-      "expectSelector": ".grid > .card .card-howto"
+      "name": "An opened card shows its how-to-play line",
+      "path": "/?card=sudoku",
+      "expectSelector": ".fd-ov .fd-phowto"
     },
     {
-      "name": "Paired card mode buttons render side by side",
-      "path": "/",
-      "expectSelector": ".grid > .card .card-modes .card-mode-btn"
+      "name": "An opened card's tabs sit side by side",
+      "path": "/?card=sudoku",
+      "expectSelector": ".fd-tabs .fd-tab + .fd-tab"
     },
     {
       "name": "Minesweeper board is a canvas",
@@ -1780,9 +1775,9 @@
       "expectText": "Your recent runs"
     },
     {
-      "name": "Home card offers all three play modes",
+      "name": "A card's corner shows all three ways to play",
       "path": "/",
-      "expectSelector": ".card-mode-btn.arcade"
+      "expectSelector": ".fd-modes .fd-mi[data-mode=\"arcade\"]"
     },
     {
       "name": "Arcade deep link mounts a board",
@@ -1805,14 +1800,14 @@
       "expectText": "Ladder complete"
     },
     {
-      "name": "Pin button renders on every home card",
-      "path": "/",
-      "expectSelector": ".card-pin"
+      "name": "Pin is on the back of every card",
+      "path": "/?card=sudoku",
+      "expectSelector": ".fd-ov .fd-actions .fd-pin"
     },
     {
-      "name": "Favorite star renders on every home card",
-      "path": "/",
-      "expectSelector": ".card-fav"
+      "name": "Favorite is on the back of every card",
+      "path": "/?card=sudoku",
+      "expectSelector": ".fd-ov .fd-actions .fd-fav"
     },
     {
       "name": "Favorites filter chip renders",
@@ -1822,12 +1817,12 @@
     {
       "name": "Favorites chip shows starred cards only",
       "path": "/?demo=favorites&favview=1",
-      "expectSelector": ".card"
+      "expectSelector": ".home-results[data-filter=\"favorites\"] .fd-cardbtn"
     },
     {
-      "name": "Favorites view stars its games",
-      "path": "/?demo=favorites&favview=1",
-      "expectSelector": ".card-fav.on"
+      "name": "A starred game says so on its card",
+      "path": "/?demo=favorites&card=sudoku",
+      "expectSelector": ".fd-ov .fd-fav.on"
     },
     {
       "name": "Empty favorites view explains how to star",
@@ -1845,19 +1840,19 @@
       "expectSelector": ".home-pinned-title"
     },
     {
-      "name": "Home with nothing pinned explains how to pin",
-      "path": "/?demo=pinsempty",
-      "expectText": "on any card to pin it to the top"
+      "name": "With nothing pinned, a card offers Pin",
+      "path": "/?demo=pinsempty&card=sudoku",
+      "expectSelector": ".fd-ov .fd-pin[aria-pressed=\"false\"]"
     },
     {
-      "name": "Recently Played strip renders the viewer's last plays",
+      "name": "The recent-plays seed boots the lobby",
       "path": "/?demo=recent",
-      "expectSelector": ".recent-row .recent-card"
+      "expectSelector": ".fd-dailies .fd-cardbtn"
     },
     {
       "name": "Home with no play history hides the Recently Played strip",
       "path": "/?demo=recentclear",
-      "expectText": "All Games"
+      "expectText": "All games"
     },
     {
       "name": "Nonogram flags a grid that is full but wrong",
@@ -2015,13 +2010,13 @@
       "expectText": "+800 pts"
     },
     {
-      "name": "Card state line carries the all-time score",
-      "path": "/?demo=myscores",
+      "name": "An opened card carries your all-time score",
+      "path": "/?demo=myscores&card=sudoku",
       "expectText": "+320 pts"
     },
     {
-      "name": "Card without a daily still shows its all-time best",
-      "path": "/?demo=myscores",
+      "name": "A card without a daily still shows your all-time best",
+      "path": "/?demo=myscores&card=snake",
       "expectText": "Best 350"
     },
     {
@@ -2109,6 +2104,26 @@
       "path": "/?game=sudoku&boards=1&demo=streak",
       "expectSelector": ".lb-band-tabs",
       "expectText": "Hard"
+    },
+    {
+      "name": "A card link opens on the tab it names",
+      "path": "/?card=sudoku&cmode=story",
+      "expectSelector": ".fd-ov .fd-tab.on[data-mode=\"story\"]"
+    },
+    {
+      "name": "Your matches marks a match where it is your turn",
+      "path": "/?demo=yourturn",
+      "expectSelector": ".fd-matches .fd-cardbtn.live"
+    },
+    {
+      "name": "Escape from Dracula opens to its reader",
+      "path": "/?card=dracula",
+      "expectText": "Start reading"
+    },
+    {
+      "name": "The Game of the day's card opens from a link",
+      "path": "/?card=gotd",
+      "expectSelector": ".fd-ov .fd-pname"
     }
   ],
   "visibility": {

@@ -845,6 +845,22 @@ function runClientSelfTests(styleReady) {
      everything. This is the filter the home render applies between the chip
      filter and the pin partition, asserted here against GAME_CARDS the same
      way the favorites/pin checks walk it. */
+  /* The flip-deck lobby draws every card from two tables keyed by card key:
+     its shelf (DECK_SHELF_OF) and its picture (DECK_ART). A card missing from
+     either would land on the wrong shelf or show a blank square, silently —
+     so every card in GAME_CARDS must be in both, and nothing else may be. */
+  check('deck-coverage', () => {
+    for (const c of GAME_CARDS) {
+      if (DECK_SHELF_IDS.indexOf(DECK_SHELF_OF[c.key]) === -1) throw new Error(c.key + ' has no shelf');
+      if (!DECK_ART.has(c.key)) throw new Error(c.key + ' has no picture');
+      const scene = DECK_ART.scene(c.key);
+      if (!scene.bits.length) throw new Error(c.key + ' has an empty picture');
+    }
+    const keys = new Set(GAME_CARDS.map(c => c.key));
+    for (const k of Object.keys(DECK_SHELF_OF)) if (!keys.has(k)) throw new Error('shelf entry for a card that does not exist: ' + k);
+    return true;
+  });
+
   check('home-search-filter', () => {
     if (!homeSearchMatch(GAME_CARDS[0], '')) {
       throw new Error('an empty query must match every card');
@@ -2102,70 +2118,76 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
-  /* #167 — the games grid must read as even tiles. Measured, because every way
-     this regresses is a layout effect no static scan sees: re-adding
-     `align-items: start` to .grid, dropping `grid-auto-rows: 1fr`, an unclamped
-     title/blurb, or a footer that forgets `margin-top: auto`. One tolerance of
-     1px covers sub-pixel row rounding. */
+  /* #167 — the games must read as even tiles. On the flip-deck lobby a card
+     has a fixed aspect, so within one shelf or grid every card should come out
+     the same height; a card that does not is a column that is not 1fr, or a
+     card that has lost its aspect-ratio. One tolerance of 1px covers sub-pixel
+     rounding. */
   checkStyled('grid-uniform-cards', () => {
-    const cards = Array.from(document.querySelectorAll('.grid > .card'));
-    if (cards.length < 2) return true; // grid not mounted (in a game, or filtered to one)
-    const hs = cards.map((c) => c.getBoundingClientRect().height);
-    if (Math.max.apply(null, hs) < 40) return true; // laid out off-screen / mid-mount
-    const lo = Math.min.apply(null, hs);
-    const hi = Math.max.apply(null, hs);
-    if (hi - lo > 1) {
-      const nameOf = (c) => {
-        const n = c.querySelector('.card-name');
-        return n ? n.textContent : '?';
-      };
-      throw new Error('game cards are ragged: ' + Math.round(lo) + 'px ('
-        + nameOf(cards[hs.indexOf(lo)]) + ') vs ' + Math.round(hi) + 'px ('
-        + nameOf(cards[hs.indexOf(hi)]) + ') across ' + cards.length + ' cards');
+    for (const box of Array.from(document.querySelectorAll('.fd-grid, .fd-row.fd-shelf'))) {
+      const cards = Array.from(box.querySelectorAll(':scope > .fd-cardbtn > .fd-card'));
+      if (cards.length < 2) continue;
+      const hs = cards.map((c) => c.getBoundingClientRect().height);
+      if (Math.max.apply(null, hs) < 40) continue; // laid out off-screen / mid-mount
+      const lo = Math.min.apply(null, hs);
+      const hi = Math.max.apply(null, hs);
+      if (hi - lo > 1) {
+        const nameOf = (c) => {
+          const n = c.querySelector('.fd-name');
+          return n ? n.textContent : '?';
+        };
+        throw new Error('game cards are ragged: ' + Math.round(lo) + 'px ('
+          + nameOf(cards[hs.indexOf(lo)]) + ') vs ' + Math.round(hi) + 'px ('
+          + nameOf(cards[hs.indexOf(hi)]) + ') across ' + cards.length + ' cards');
+      }
     }
     return true;
   });
 
-  /* #182 — the games grid must be at least two-up on a phone. Measured,
+  /* #182 — a grid of games must be at least two-up on a phone. Measured,
      because the regression is arithmetic between two rules that never mention
-     each other: .lobby's padding sets the content width, .grid's track floor
-     sets how many fit, and a change to either can silently drop the wall back
-     to a 30-card single-column scroll. The width guard keeps this quiet on a
-     genuinely narrow frame (and while the grid is mid-mount at zero width),
-     where one column is the honest answer. */
+     each other: .lobby's padding sets the content width, the grid's track
+     floor sets how many fit. The width guard keeps this quiet on a genuinely
+     narrow frame (and mid-mount at zero width). On the flip-deck lobby the
+     grids are a chip's or a search's results (.fd-grid) and, on a wide
+     screen, the shelves. */
   checkStyled('grid-two-up', () => {
-    const el = document.querySelector('.grid');
-    if (!el) return true; // grid not mounted (in a game / on another screen)
-    const w = el.getBoundingClientRect().width;
-    if (w < 300) return true; // narrower than two 140px tiles + gap, or not laid out yet
-    const cols = getComputedStyle(el).gridTemplateColumns;
-    const tracks = (cols && cols !== 'none') ? cols.trim().split(/\s+/).length : 0;
-    if (tracks < 2) {
-      throw new Error('games grid is one column at ' + Math.round(w)
-        + 'px wide (grid-template-columns: ' + cols + ')');
+    for (const el of Array.from(document.querySelectorAll('.fd-grid, .fd-row.fd-shelf'))) {
+      if (getComputedStyle(el).display !== 'grid') continue;
+      const w = el.getBoundingClientRect().width;
+      if (w < 300) continue; // narrower than two cards + gap, or not laid out yet
+      const cols = getComputedStyle(el).gridTemplateColumns;
+      const tracks = (cols && cols !== 'none') ? cols.trim().split(/\s+/).length : 0;
+      if (tracks < 2) {
+        throw new Error('games grid is one column at ' + Math.round(w)
+          + 'px wide (grid-template-columns: ' + cols + ')');
+      }
     }
     return true;
   });
 
-  /* The static half of grid-two-up: it fires even when the home screen isn't
+  /* The static half of grid-two-up: it fires even when the lobby isn't
      mounted, and it names the rule rather than the symptom. Any rule whose
-     selector is exactly `.grid` — including inside a @media block — that pins
-     the wall to a single track is the #182 regression coming back. */
+     selector is exactly `.fd-grid` — including inside a @media block — that
+     pins it to a single track is the #182 regression coming back. */
   check('grid-no-single-column', () => {
     const bad = [];
-    // Selector must be EXACTLY `.grid`: preceded by start-of-file, `}` or a
-    // media block's `{`, so `.fit-col .grid` or `.grid > .card` don't match.
-    const re = /(?:^|[{}])\s*\.grid\s*\{([^}]*)\}/g;
+    let seen = 0;
+    // Selector must be EXACTLY `.fd-grid`: preceded by start-of-file, `}` or
+    // a media block's `{`, so `.fd-grid > x` doesn't match.
+    const re = /(?:^|[{}])\s*\.fd-grid\s*\{([^}]*)\}/g;
     let m;
     while ((m = re.exec(css))) {
+      seen++;
       const body = m[1];
       const gm = /(^|[;\s])grid-template-columns\s*:([^;]+)/.exec(body);
       if (!gm) continue;
       const value = gm[2].trim();
       if (countTracks(value) < 2) bad.push('grid-template-columns: ' + value);
     }
+    if (!seen) throw new Error('no .fd-grid rule found — update this check');
     if (bad.length) {
-      throw new Error('.grid pinned to a single column by: ' + bad.join(' | '));
+      throw new Error('.fd-grid pinned to a single column by: ' + bad.join(' | '));
     }
     return true;
   });
