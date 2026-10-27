@@ -1940,49 +1940,6 @@
       "expectSelector": ".badge-chip.locked[data-badge=\"story-minefinder\"]"
     },
     {
-      "id": "music-toggle",
-      "name": "Daily header has a Music button",
-      "path": "/?game=sudoku&practice=1&sdk=6",
-      "expectSelector": ".game-head .music-btn[aria-label=\"Music\"]",
-      "visual": true,
-      "impact": [
-        "public/src/02-prefs-theme.jsx",
-        "public/src/03-classic-shell.jsx",
-        "public/src/30-app-root.jsx",
-        "public/src/01-styles.jsx"
-      ]
-    },
-    {
-      "name": "Classic topbar has a Music button",
-      "path": "/?game=snake&snake=easy",
-      "expectSelector": ".cg-topbar .music-btn"
-    },
-    {
-      "name": "Music is off by default",
-      "path": "/?game=sudoku&practice=1&sdk=6",
-      "expectSelector": ".game-head .music-btn.is-off[aria-pressed=\"false\"]"
-    },
-    {
-      "name": "Music can be forced on",
-      "path": "/?game=sudoku&practice=1&sdk=6&music=1",
-      "expectSelector": ".game-head .music-btn[aria-pressed=\"true\"]"
-    },
-    {
-      "name": "Music can be forced off",
-      "path": "/?game=sudoku&practice=1&sdk=6&music=0",
-      "expectSelector": ".game-head .music-btn.is-off[aria-pressed=\"false\"]"
-    },
-    {
-      "name": "Settings has a music volume slider",
-      "path": "/?settings=1",
-      "expectSelector": ".music-volume input[type=\"range\"]"
-    },
-    {
-      "name": "Settings names the music volume",
-      "path": "/?settings=1",
-      "expectText": "Music volume"
-    },
-    {
       "id": "theme.accent-teal",
       "name": "Home filter chip wears the teal accent",
       "path": "/",
@@ -2124,6 +2081,12 @@
       "name": "The Game of the day's card opens from a link",
       "path": "/?card=gotd",
       "expectSelector": ".fd-ov .fd-pname"
+    },
+    {
+      "name": "Pre-game level picker offers a copy link",
+      "path": "/?game=sudoku&pmode=story&level=2&demo=modes",
+      "expectSelector": ".pregame-bands-head .pregame-link-btn",
+      "expectText": "Copy link"
     }
   ],
   "visibility": {

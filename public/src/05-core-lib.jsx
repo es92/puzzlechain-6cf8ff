@@ -512,6 +512,34 @@ function copyText(text) {
   return Promise.resolve(copyViaExecCommand(text));
 }
 
+/* #335 — the ONE builder for a link that opens a game at a level. The deep-link
+   reader in 30-app-root.jsx already understands ?game= · ?pmode= · ?level= ·
+   &play=1, so every producer (the pre-game Copy link button, the daily result
+   card, the arcade run Share) writes the same shape through here rather than
+   each hand-rolling a partial one — which is how the arcade share ended up
+   sending ?mode=arcade, a param that pins a CLASSIC's opponent and therefore
+   named no mode at all.
+
+   `band` is the shell's own value: a 0-based story index, or a daily/arcade
+   band id. Only story uses a numeric one, and the URL's ?level= is 1-based.
+   A daily link always names its difficulty (Normal included) so the opener
+   gets the sender's board, not whatever they picked last. Read at CALL time —
+   isPlayMode and ARCADE_BAND_IDS are declared in 29-cards.jsx, later in ORDER,
+   but this only ever runs after the whole bundle has evaluated. */
+function playLink(gameId, mode, band) {
+  const base = `${location.origin}/?game=${encodeURIComponent(gameId)}`;
+  if (!isPlayMode(mode)) return base + '&play=1';
+  let q = base + `&pmode=${mode}`;
+  if (mode === 'story') {
+    if (Number.isFinite(band)) q += `&level=${band + 1}`;
+  } else if (mode === 'daily') {
+    q += `&level=${isDailyBand(band) ? band : 'normal'}`;
+  } else if (mode === 'arcade' && ARCADE_BAND_IDS.indexOf(band) !== -1) {
+    q += `&level=${band}`;
+  }
+  return q + '&play=1';
+}
+
 // Coarse relative time for history rows — "3d", "2h", "just now". Deliberately
 // coarse: a run list wants scannable ages, not timestamps.
 function cgAgo(when) {

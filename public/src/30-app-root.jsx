@@ -41,15 +41,6 @@ function WinEarned({ value }) {
   return <span className="we-v" data-win-earned={n}>+{shown}</span>;
 }
 
-/* Starts and stops the DJ loop (02-prefs-theme.jsx) as `want` changes. The
-   loop itself waits for the first gesture before it makes a sound. */
-function useGameMusic(want, groove) {
-  useEffect(() => {
-    if (want) djMusicStart(groove); else djMusicStop();
-  }, [want, groove]);
-  useEffect(() => () => djMusicStop(), []);
-}
-
 /* Copy-to-clipboard Share button for the win/loss result cards. Declared at
    MODULE scope on purpose, and this is the whole of issue #340: defined
    inside App it got a new function identity on every App render, and React
@@ -1410,9 +1401,10 @@ function App() {
   // game's own spoiler-free result line, then rank + the playable no-login
   // challenge link. `rank` is optional — the card reads fine while it's still
   // being fetched (or for guests before the rank preview lands).
-  // #331 — `band` is the run's difficulty: the "same deal" link carries
-  // `&band=` so the recipient opens the SAME board the sender played, not the
-  // Normal board. Normal is the default and adds nothing.
+  // #331 — `band` is the run's difficulty: the "same deal" link names it
+  // (#335 makes that `&level=` via playLink) so the recipient opens the SAME
+  // board the sender played. A daily link always names it, Normal included,
+  // so the opener does not get whatever difficulty they last picked.
   const buildShareCard = (gameId, resultLine, rank, band) => {
     const d = new Date(Date.now() + offset);
     const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -1420,10 +1412,9 @@ function App() {
     // Game result lines historically self-prefix the app name; strip it so
     // the card doesn't read "Game Corner … Game Corner …".
     if (resultLine) lines.push(resultLine.replace(/^Game Corner /, ''));
-    const bandQ = (band === 'easy' || band === 'hard') ? `&band=${band}` : '';
     lines.push(
       (Number.isFinite(rank) ? `#${rank} on today's board · ` : '') +
-      `Play the same deal (no login): ${window.location.origin}/?game=${gameId}${bandQ}`
+      `Play the same deal (no login): ${playLink(gameId, 'daily', band)}`
     );
     return lines.join('\n');
   };
@@ -2442,7 +2433,6 @@ function App() {
               <div className="game-title">
                 <span>{currentGame.icon}</span> {currentGame.name}
               </div>
-              {!currentGame.ownMusic && <MusicButton className="help-btn music-btn" />}
               {authOk && (
                 <button
                   className="help-btn"
@@ -2663,13 +2653,6 @@ function App() {
     ? { ...practiceResult, isPractice: true }
     : null;
   const resultData = winData || loseData || practiceResultData;
-
-  // Background DJ music: only while a board is live, never over a results
-  // card or the band-advance screen, and never for a game with its own score.
-  useCgPrefsVersion();
-  const musicWanted = cgPrefs.sound && cgPrefs.music && screen === 'game' && !!currentGame
-    && !resultData && !advance && !currentGame.ownMusic;
-  useGameMusic(musicWanted, djGrooveFor(currentGame));
 
   const fitActive = (screen === 'game' && !!currentGame && !!currentGame.fitShell
     && (!resultData || reviewMode))

@@ -638,6 +638,46 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* #335 — every shared link goes through playLink and is read by the existing
+     ?pmode= deep-link branch. These are that branch's contract: story's
+     ?level= is 1-based (the shell's index is 0-based), a daily always names
+     its band — Normal included, so the opener does not inherit their own last
+     pick — arcade names one only when it is a real band, and free play carries
+     neither a mode nor a level. No link may use ?mode= (the classic opponent
+     pin, which is how the arcade share used to name no mode at all) or the
+     older ?band= spelling. */
+  check('play-link-shape', () => {
+    const shape = (url) => new URL(url).searchParams;
+    const expect = (p, want, what) => {
+      for (const k of Object.keys(want)) {
+        if (p.get(k) !== want[k]) {
+          throw new Error(what + ': ' + k + ' read ' + JSON.stringify(p.get(k)) +
+            ', expected ' + JSON.stringify(want[k]));
+        }
+      }
+    };
+    expect(shape(playLink('sudoku', 'story', 3)),
+      { game: 'sudoku', pmode: 'story', level: '4', play: '1' }, 'story level 4');
+    expect(shape(playLink('sudoku', 'story', 0)),
+      { level: '1' }, 'story index 0 is level 1');
+    expect(shape(playLink('nonogram', 'daily', 'hard')),
+      { game: 'nonogram', pmode: 'daily', level: 'hard', play: '1' }, 'daily hard');
+    expect(shape(playLink('nonogram', 'daily', undefined)),
+      { pmode: 'daily', level: 'normal', play: '1' }, 'daily default names Normal');
+    expect(shape(playLink('dropstack', 'arcade', 'easy')),
+      { game: 'dropstack', pmode: 'arcade', level: 'easy', play: '1' }, 'arcade easy');
+    const unknownArcade = shape(playLink('dropstack', 'arcade', 'nonsense'));
+    if (unknownArcade.has('level')) throw new Error('an unknown arcade band must leave out level');
+    const free = shape(playLink('snake', null));
+    expect(free, { game: 'snake', play: '1' }, 'free play');
+    if (free.has('pmode') || free.has('level')) throw new Error('free play must name no mode or level');
+    for (const mode of ['story', 'daily', 'arcade']) {
+      const q = shape(playLink('sudoku', mode, mode === 'story' ? 2 : 'hard'));
+      if (q.has('mode') || q.has('band')) throw new Error(mode + ' link used ?mode= or ?band=');
+    }
+    return true;
+  });
+
   /* #208 — a touch DROP must yield coordinates. `e.touches` is a TouchList on
      every TouchEvent and a TouchList is an object, so testing it for existence
      rather than length made `touchend` — whose `touches` is empty by
@@ -1772,60 +1812,6 @@ function runClientSelfTests(styleReady) {
       const b = cgLoopNoteAt(m, 3 + CG_LOOP_STEPS_PER_BAR * 2);
       if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(m + ' loop is not bar-periodic');
     }
-    return true;
-  });
-
-  /* Background DJ music. The arrangement is a pure function of (groove, bar,
-     step), so its shape is asserted here without any audio. */
-  check('dj-music-pattern', () => {
-    for (const name of Object.keys(DJ_GROOVES)) {
-      const g = DJ_GROOVES[name];
-      if (!(g.bpm >= 90 && g.bpm <= 140)) throw new Error(name + ' bpm ' + g.bpm + ' out of range');
-      if (g.chords.length !== g.roots.length) throw new Error(name + ' chords and roots disagree');
-      const mainBar = DJ_SECTIONS[0][1];
-      const breakBar = DJ_SECTIONS[0][1] + DJ_SECTIONS[1][1];
-      if (djStepAt(name, mainBar, 0).section !== 'main') throw new Error('bar ' + mainBar + ' is not main');
-      if (djStepAt(name, breakBar, 0).section !== 'break') throw new Error('bar ' + breakBar + ' is not the break');
-      for (const s of [0, 4, 8, 12]) {
-        if (!djStepAt(name, mainBar, s).kick) throw new Error(name + ' main has no kick on ' + s);
-      }
-      for (let s = 0; s < 16; s++) {
-        if (djStepAt(name, breakBar, s).kick) throw new Error(name + ' break has a kick on ' + s);
-      }
-      for (let bar = 0; bar < DJ_CYCLE_BARS; bar++) {
-        for (let s = 0; s < 16; s++) {
-          const n = djStepAt(name, bar, s);
-          if (n.bass !== null && !(n.bass > 0)) throw new Error(name + ' bad bass pitch');
-          if (n.stab && !n.stab.every((hz) => hz > 0)) throw new Error(name + ' bad stab pitch');
-          if (!(n.dur > 0)) throw new Error(name + ' step has no duration');
-          const again = djStepAt(name, bar + DJ_CYCLE_BARS, s);
-          if (JSON.stringify(n) !== JSON.stringify(again)) throw new Error(name + ' is not periodic over the cycle');
-        }
-      }
-    }
-    if (djGrooveFor(null) !== 'house') throw new Error('no game should mean house');
-    for (const game of GAMES) {
-      if (!DJ_GROOVES[djGrooveFor(game)]) throw new Error(game.id + ' has no groove');
-    }
-    return true;
-  });
-
-  // The three games that already score themselves keep their own soundtrack;
-  // two musics at once would be noise.
-  check('dj-music-own-soundtrack', () => {
-    const own = GAMES.filter((g) => g.ownMusic).map((g) => g.id).sort().join(',');
-    if (own !== 'bounce,chutes-ladders,minesweeper') throw new Error('ownMusic ids are ' + own);
-    return true;
-  });
-
-  check('music-prefs', () => {
-    if (cgReadMusicPref(null) !== false) throw new Error('music must default to off');
-    if (cgReadMusicPref('0') !== false) throw new Error("'0' must read as off");
-    if (cgReadMusicPref('1') !== true) throw new Error("'1' must read as on");
-    if (cgClampVolume(150) !== 100 || cgClampVolume(-5) !== 0) throw new Error('volume is not clamped');
-    if (djGain(false, true, 80) !== 0 || djGain(true, false, 80) !== 0) throw new Error('muted music still has gain');
-    if (!(djGain(true, true, 80) > 0)) throw new Error('music on has no gain');
-    if (Math.abs(cgOwnMusicLevel(CG_MUSIC_VOLUME_DEFAULT) - BG_MUSIC_GAIN) > 1e-9) throw new Error('default volume changed the own soundtracks');
     return true;
   });
 

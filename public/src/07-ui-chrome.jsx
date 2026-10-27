@@ -554,7 +554,7 @@ function ArcadeRuns({ gameId, authOk, onReplay }) {
   const share = (r) => {
     const line = `Game Corner ${gameId} — Arcade ${arcadeBand(r.band).label}: ${r.score} pts` +
       (r.timeSecs ? ` in ${Math.floor(r.timeSecs / 60)}:${String(r.timeSecs % 60).padStart(2, '0')}` : '') +
-      ` 🎮 ${location.origin}/?game=${encodeURIComponent(gameId)}&mode=arcade`;
+      ` 🎮 ${playLink(gameId, 'arcade', r.band)}`;
     copyText(line);
     setCopied(r.id);
     setTimeout(() => setCopied(c => (c === r.id ? null : c)), 1600);
@@ -800,6 +800,25 @@ function GameBoards({ game, onClose }) {
   );
 }
 
+/* #335 — copy a link that drops someone straight onto this game's board, in
+   this mode, at this level or difficulty. Same outline button and same
+   "✓ Copied" beat as an arcade run's Share; the link itself comes from
+   playLink so every shared link in the app has one shape. */
+function PlayLinkButton({ gameId, mode, band }) {
+  const [copied, setCopied] = useState(false);
+  const label = mode === 'story' ? 'Copy a link to this level' : 'Copy a link to this difficulty';
+  const copy = () => {
+    copyText(playLink(gameId, mode, band));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <button className="pregame-link-btn tappable" aria-label={label} {...tapProps(copy)}>
+      {copied ? '✓ Copied' : '🔗 Copy link'}
+    </button>
+  );
+}
+
 function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offset, onReset, onPlay, onPractice, onHowTo, onChat,
                          playMode, storyProgress, storyBand, onStoryBand, arcadeBandId, onArcadeBand, arcadeBest,
                          onReplayRun, dailyBandId, onDailyBand, variant }) {
@@ -923,7 +942,10 @@ function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offs
       )}
       {isDaily && !deck && (
         <div className="pregame-bands" role="group" aria-label="Choose a difficulty">
-          <div className="pregame-bands-label">Difficulty</div>
+          <div className="pregame-bands-head">
+            <div className="pregame-bands-label">Difficulty</div>
+            <PlayLinkButton gameId={game.id} mode="daily" band={activeBand} />
+          </div>
           <div className="pregame-band-row wide">
             {DAILY_BANDS.map(b => (
               <button
@@ -947,7 +969,10 @@ function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offs
       )}
       {isStory && bandTotal > 0 && (
         <div className="pregame-bands" role="group" aria-label="Choose a level">
-          <div className="pregame-bands-label">Level</div>
+          <div className="pregame-bands-head">
+            <div className="pregame-bands-label">Level</div>
+            <PlayLinkButton gameId={game.id} mode="story" band={storyBand} />
+          </div>
           <div className="pregame-band-row">
             {Array.from({ length: bandTotal }, (_, i) => {
               const done = i < bandCleared;
@@ -972,7 +997,10 @@ function PreGameScreen({ game, attempt, best, streak, authOk, nextResetUtc, offs
       )}
       {isArcade && (
         <div className="pregame-bands" role="group" aria-label="Choose a difficulty">
-          <div className="pregame-bands-label">Difficulty</div>
+          <div className="pregame-bands-head">
+            <div className="pregame-bands-label">Difficulty</div>
+            <PlayLinkButton gameId={game.id} mode="arcade" band={arcadeBandId} />
+          </div>
           <div className="pregame-band-row wide">
             {/* #195 — the per-band "recommended" tag is gone. It was steering
                 rather than gating (all three bands are open from the first

@@ -1028,6 +1028,20 @@ ${emitTapHighlightRules()}
   letter-spacing: 0.12em; text-transform: uppercase; color: ${C.muted};
   margin-bottom: 0.4rem;
 }
+/* #335 — the heading and its Copy link share one line. The button is the same
+   small outlined control as an arcade run's Share, because it does the same
+   thing: copy a link, then say so for a moment. */
+.pregame-bands-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin-bottom: 0.4rem;
+}
+.pregame-bands-head .pregame-bands-label { margin-bottom: 0; }
+.pregame-link-btn {
+  flex: 0 0 auto; border: 1px solid ${C.border}; background: ${C.card};
+  color: ${C.text}; border-radius: 8px; padding: 0.25rem 0.45rem;
+  font: inherit; font-size: 0.72rem; cursor: pointer;
+}
+.pregame-link-btn[data-pressed] { background: var(--c-well-strong); }
 .pregame-band-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .pregame-band-row.wide { display: grid; grid-template-columns: repeat(3, 1fr); }
 .pregame-band {
@@ -2651,22 +2665,6 @@ ${emitTapHighlightRules()}
   font-size: 16px;   /* iOS zooms a focused input under 16px */
 }
 .cg-settings-h4-spaced { margin-top: 1.15rem; }
-/* Background DJ music: the 🎵 header button and the Settings volume row. */
-.music-btn { position: relative; }
-.music-btn.is-off { opacity: 0.55; }
-.music-btn.is-off::after {
-  content: ''; position: absolute; left: 22%; right: 22%; top: 50%;
-  height: 2px; border-radius: 1px; background: ${C.muted};
-  transform: rotate(-35deg); pointer-events: none;
-}
-.music-btn[data-pressed] { transform: scale(0.92); opacity: 0.8; }
-.music-volume { gap: 0.75rem; }
-.music-volume .name { flex: 0 0 auto; }
-.music-volume input[type="range"] {
-  flex: 1 1 auto; width: 100%; min-width: 0; height: 44px; margin: 0;
-  accent-color: ${C.accent}; touch-action: manipulation; cursor: pointer;
-}
-.music-volume-val { flex: 0 0 3.2em; text-align: right; font-size: 0.8rem; color: ${C.muted}; }
 
 /* ---- Theme picker (light / dark / system) ---- */
 .theme-choice { margin: 0.35rem 0 0.2rem; }
