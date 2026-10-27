@@ -157,6 +157,7 @@ const TAPPABLE_CLASSES = [
   'tappable',
   'mf-canvas', 'board-canvas',
   'card-pin',
+  'music-btn',
   'dl-check',
   'pregame-practice',
   'nav-theme-btn',

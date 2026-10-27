@@ -11,9 +11,30 @@ const CG_MOTION_KEY  = 'puzzlechain_cg_motion';
    turning it off is a real trade and belongs to the player rather than to a
    silent default. Flipping this default is one word if the group wants it. */
 const CG_DEVKBD_KEY  = 'puzzlechain_cg_devkbd';
+/* Background DJ music. OFF by default, deliberately: only a stored '1' means
+   on, the same shape as devkbd. A beat that starts on its own is intrusive in
+   public, on a call or in class, and the games that are silent today should
+   stay that way until the player asks. The volume is a number, so it has its
+   own key and setter (cgSetPref only writes '1'/'0'). */
+const CG_MUSIC_KEY   = 'puzzlechain_cg_music';
+const CG_MUSIC_VOLUME_KEY = 'puzzlechain_cg_music_volume';
+const CG_MUSIC_VOLUME_DEFAULT = 60;
 const PREF_KEYS = {
   sound: CG_SOUND_KEY, haptics: CG_HAPTICS_KEY, motion: CG_MOTION_KEY, devkbd: CG_DEVKBD_KEY,
+  music: CG_MUSIC_KEY,
 };
+// Pure readers for the two music prefs, so `music-prefs` can assert the
+// default without touching real storage.
+function cgReadMusicPref(raw) { return raw === '1'; }
+function cgClampVolume(n) {
+  const v = Math.round(Number(n));
+  if (!isFinite(v)) return CG_MUSIC_VOLUME_DEFAULT;
+  return Math.max(0, Math.min(100, v));
+}
+function cgReadMusicVolume(raw) {
+  if (raw == null || raw === '' || !isFinite(Number(raw))) return CG_MUSIC_VOLUME_DEFAULT;
+  return cgClampVolume(raw);
+}
 
 // Module-level prefs read by cgSound/cgHaptic without prop threading.
 const cgPrefs = {
@@ -21,12 +42,48 @@ const cgPrefs = {
   haptics: (() => { try { return localStorage.getItem(CG_HAPTICS_KEY) !== '0'; } catch { return true; } })(),
   motion:  (() => { try { return localStorage.getItem(CG_MOTION_KEY) === '1'; } catch { return false; } })(),
   devkbd:  (() => { try { return localStorage.getItem(CG_DEVKBD_KEY) === '1'; } catch { return false; } })(),
+  music:   (() => { try { return cgReadMusicPref(localStorage.getItem(CG_MUSIC_KEY)); } catch { return false; } })(),
+  musicVolume: (() => { try { return cgReadMusicVolume(localStorage.getItem(CG_MUSIC_VOLUME_KEY)); } catch { return CG_MUSIC_VOLUME_DEFAULT; } })(),
 };
+/* One broadcast for pref changes. The music button, the Settings rows and
+   ClassicShell's sound button each used to keep a private force counter, so
+   flipping Sound in one left the others showing the old state. */
+const _cgPrefListeners = new Set();
+function cgOnPrefChange(fn) {
+  _cgPrefListeners.add(fn);
+  return () => { _cgPrefListeners.delete(fn); };
+}
+function _cgNotifyPrefs() {
+  _cgPrefListeners.forEach((fn) => { try { fn(); } catch (e) {} });
+}
+// Re-render on any pref change. Returns a counter, like useThemeVersion.
+function useCgPrefsVersion() {
+  const [v, setV] = useState(0);
+  useEffect(() => cgOnPrefChange(() => setV((n) => n + 1)), []);
+  return v;
+}
 function cgSetPref(key, val) {
   cgPrefs[key] = val;
   try { localStorage.setItem(PREF_KEYS[key] || CG_MOTION_KEY, val ? '1' : '0'); } catch {}
   if (key === 'motion') applyMotionPref();
+  if (key === 'music' || key === 'sound') cgApplyMusicVolume();
+  _cgNotifyPrefs();
 }
+function cgSetMusicVolume(n) {
+  cgPrefs.musicVolume = cgClampVolume(n);
+  try { localStorage.setItem(CG_MUSIC_VOLUME_KEY, String(cgPrefs.musicVolume)); } catch {}
+  cgApplyMusicVolume();
+  _cgNotifyPrefs();
+}
+/* `?music=0|1` forces the DJ music pref at boot. It sets the in-memory pref
+   ONLY and never writes storage, so a check that forces it on cannot leak into
+   a later check that asserts the off default. */
+(function readMusicParam() {
+  try {
+    const v = new URLSearchParams(window.location.search).get('music');
+    if (v === '1' || v === '0') cgPrefs.music = v === '1';
+  } catch (_) {}
+})();
 
 /* #331 — the remembered daily difficulty. A string, not a boolean, so it gets
    its own key and writer: cgSetPref writes '1'/'0' and would corrupt it. The
@@ -412,7 +469,7 @@ function _bgStartSource() {
   }
   if (!_bgMusicGainNode) {
     _bgMusicGainNode = ctx.createGain();
-    _bgMusicGainNode.gain.value = BG_MUSIC_GAIN;
+    _bgMusicGainNode.gain.value = cgOwnMusicLevel(cgPrefs.musicVolume);
     _bgMusicGainNode.connect(ctx.destination);
   }
   const src = ctx.createBufferSource();
@@ -555,15 +612,30 @@ function _cgLoopVoice(ctx, freq, at, dur, type, level) {
     g.gain.setValueAtTime(0.0001, at);
     g.gain.exponentialRampToValueAtTime(Math.max(0.0002, level), at + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, at + dur * 0.95);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(_cgLoopOut(ctx));
     osc.start(at);
     osc.stop(at + dur);
   } catch (e) {}
 }
 
+/* The procedural loop's voices used to connect straight to the destination,
+   so there was nothing to turn down. One gain node gives it the shared music
+   volume; at the default volume it is unity, i.e. exactly today's level. */
+let _cgLoopOutNode = null;
+function _cgLoopOut(ctx) {
+  if (_cgLoopOutNode) return _cgLoopOutNode;
+  try {
+    _cgLoopOutNode = ctx.createGain();
+    _cgLoopOutNode.gain.value = cgOwnMusicFactor(cgPrefs.musicVolume);
+    _cgLoopOutNode.connect(ctx.destination);
+  } catch (e) { return ctx.destination; }
+  return _cgLoopOutNode;
+}
+
 function _cgLoopTick() {
   const L = _cgLoop;
   if (!L) return;
+  if (_cgAudioHidden) return; // app hidden: schedule nothing, catch up on show
   const ctx = cgAudio();
   if (!ctx) return;
   if (L.nextTime < ctx.currentTime) L.nextTime = ctx.currentTime + 0.05;
@@ -613,6 +685,354 @@ function cgStopLoopMusic() {
   try { clearInterval(_cgLoop.timer); } catch (e) {}
   _cgLoop = null;
 }
+
+/* ============================================================
+   Background DJ music. Synthesized with Web Audio, no audio files.
+   ------------------------------------------------------------
+   OFF by default (see CG_MUSIC_KEY). Three grooves, one per kind of game, each
+   a 24-bar arrangement that loops: intro (kick and hats), main (everything),
+   a break (the kick and bass drop out and a lowpass sweep brings them back),
+   then main again. `djStepAt` is the whole arrangement as a pure function of
+   (groove, bar, step), so `dj-music-pattern` can check it without audio.
+
+   Games that ship their own soundtrack (Mine Finder Classic, Bounce, Snakes &
+   Ladders) set `ownMusic` in the registry and never get this on top; they
+   share only the volume slider, through cgApplyMusicVolume.
+   ============================================================ */
+let _cgAudioHidden = false;
+const DJ_BASE_GAIN = 0.35;
+// The own-soundtrack games were tuned at what is now the default volume (60),
+// so at the default these are exactly their old levels.
+function cgOwnMusicFactor(vol) { return cgClampVolume(vol) / CG_MUSIC_VOLUME_DEFAULT; }
+function cgOwnMusicLevel(vol) { return BG_MUSIC_GAIN * cgOwnMusicFactor(vol); }
+function djGain(sound, music, vol) {
+  return sound && music ? (cgClampVolume(vol) / 100) * DJ_BASE_GAIN : 0;
+}
+
+const DJ_SECTIONS = [['intro', 4], ['main', 8], ['break', 4], ['main', 8]];
+const DJ_CYCLE_BARS = DJ_SECTIONS.reduce((n, s) => n + s[1], 0);
+const DJ_GROOVES = {
+  // Four on the floor, offbeat bass, syncopated minor stabs.
+  house: {
+    bpm: 124,
+    chords: [[220, 261.63, 329.63], [174.61, 220, 261.63], [261.63, 329.63, 392], [196, 246.94, 293.66]],
+    roots: [110, 87.31, 130.81, 98],
+    kick: [0, 4, 8, 12], clap: [4, 12], hat: [2, 6, 10, 14], ohat: [14],
+    bass: [2, 6, 10, 14], bassUp: [10], stab: [3, 10], stabLen: 1.5,
+    mix: { kick: 0.9, clap: 0.45, hat: 0.16, bass: 0.26, stab: 0.07 },
+  },
+  // Driving: sixteenth hats and a rolling bass between the kicks.
+  electro: {
+    bpm: 128,
+    chords: [[164.81, 196, 246.94], [130.81, 164.81, 196], [146.83, 174.61, 220], [123.47, 146.83, 185]],
+    roots: [82.41, 65.41, 73.42, 61.74],
+    kick: [0, 4, 8, 12], clap: [4, 12], hat: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15], ohat: [2, 10],
+    bass: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15], bassUp: [3, 7, 11, 15], stab: [0, 6], stabLen: 1,
+    mix: { kick: 0.95, clap: 0.4, hat: 0.1, bass: 0.18, stab: 0.06 },
+  },
+  // Slower and softer, long pads, for board and card games you think at.
+  chill: {
+    bpm: 100,
+    chords: [[146.83, 174.61, 220], [116.54, 146.83, 174.61], [130.81, 164.81, 196], [110, 138.59, 164.81]],
+    roots: [73.42, 58.27, 65.41, 55],
+    kick: [0, 4, 8, 12], clap: [12], hat: [2, 6, 10, 14], ohat: [],
+    bass: [0, 7, 10], bassUp: [], stab: [0], stabLen: 12,
+    mix: { kick: 0.6, clap: 0.3, hat: 0.1, bass: 0.24, stab: 0.05 },
+  },
+};
+const DJ_CHILL_TAGS = new Set(['Board', 'Cards', 'Strategy', 'Risk']);
+const DJ_CHILL_IDS = new Set(['klondike', 'spider', 'mahjongsol']);
+function djGrooveFor(game) {
+  if (!game) return 'house';
+  if (game.djGroove && DJ_GROOVES[game.djGroove]) return game.djGroove;
+  if (game.tag === 'Arcade') return 'electro';
+  if (DJ_CHILL_TAGS.has(game.tag) || DJ_CHILL_IDS.has(game.id)) return 'chill';
+  return 'house';
+}
+function djSectionAt(bar) {
+  let b = ((Math.floor(bar) % DJ_CYCLE_BARS) + DJ_CYCLE_BARS) % DJ_CYCLE_BARS;
+  for (const [name, len] of DJ_SECTIONS) {
+    if (b < len) return { section: name, barOfSection: b, sectionBars: len };
+    b -= len;
+  }
+  return { section: 'main', barOfSection: 0, sectionBars: 8 };
+}
+function djStepAt(name, bar, step) {
+  const g = DJ_GROOVES[name] || DJ_GROOVES.house;
+  const s = ((Math.floor(step) % 16) + 16) % 16;
+  const sec = djSectionAt(bar);
+  const n = g.chords.length;
+  const ci = ((Math.floor(bar) % n) + n) % n;
+  const main = sec.section === 'main', brk = sec.section === 'break';
+  return {
+    kick: !brk && g.kick.indexOf(s) >= 0,
+    clap: main && g.clap.indexOf(s) >= 0,
+    hat: g.hat.indexOf(s) >= 0,
+    ohat: main && g.ohat.indexOf(s) >= 0,
+    bass: main && g.bass.indexOf(s) >= 0 ? g.roots[ci] * (g.bassUp.indexOf(s) >= 0 ? 2 : 1) : null,
+    stab: (main || brk) && g.stab.indexOf(s) >= 0 ? g.chords[ci] : null,
+    section: sec.section, barOfSection: sec.barOfSection, sectionBars: sec.sectionBars,
+    dur: 60 / g.bpm / 4,
+  };
+}
+
+let cgMusicMaster = null;
+let _djNodes = null;
+function _djGraph(ctx) {
+  if (_djNodes && _djNodes.ctx === ctx) return _djNodes;
+  try {
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 4;
+    comp.connect(ctx.destination);
+    const master = ctx.createGain();
+    master.gain.value = djGain(cgPrefs.sound, cgPrefs.music, cgPrefs.musicVolume);
+    master.connect(comp);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 18000; filter.Q.value = 0.8;
+    filter.connect(master);
+    const bus = ctx.createGain();
+    bus.gain.value = 0;
+    bus.connect(filter);
+    const noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
+    const d = noise.getChannelData(0);
+    let seed = 0x9e3779b9;
+    for (let i = 0; i < d.length; i++) {
+      seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+      d[i] = ((seed >>> 0) / 4294967296) * 2 - 1;
+    }
+    cgMusicMaster = master;
+    _djNodes = { ctx, comp, master, filter, bus, noise };
+    return _djNodes;
+  } catch (e) { return null; }
+}
+function _djEnv(ctx, gainVal, t, len, out) {
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gainVal, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  g.connect(out);
+  return g;
+}
+function _djNoise(ctx, N, t, len, type, freq, gainVal) {
+  const src = ctx.createBufferSource();
+  src.buffer = N.noise;
+  const f = ctx.createBiquadFilter();
+  f.type = type; f.frequency.value = freq;
+  src.connect(f).connect(_djEnv(ctx, gainVal, t, len, N.bus));
+  src.start(t); src.stop(t + len + 0.02);
+}
+function _djOsc(ctx, type, freq, t, len, dest, detune) {
+  const o = ctx.createOscillator();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (detune) o.detune.value = detune;
+  o.connect(dest);
+  o.start(t); o.stop(t + len + 0.02);
+  return o;
+}
+function _djPlayStep(ctx, N, n, t, g) {
+  const m = g.mix;
+  try {
+    if (n.kick) {
+      const o = _djOsc(ctx, 'sine', 150, t, 0.3, _djEnv(ctx, m.kick, t, 0.28, N.bus));
+      o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    }
+    if (n.clap) _djNoise(ctx, N, t, 0.18, 'bandpass', 1500, m.clap);
+    if (n.hat) _djNoise(ctx, N, t, 0.05, 'highpass', 7000, m.hat);
+    if (n.ohat) _djNoise(ctx, N, t, 0.25, 'highpass', 6500, m.hat * 0.8);
+    if (n.bass) {
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.setValueAtTime(900, t);
+      f.frequency.exponentialRampToValueAtTime(250, t + n.dur * 1.8);
+      f.connect(_djEnv(ctx, m.bass, t, n.dur * 1.8, N.bus));
+      _djOsc(ctx, 'sawtooth', n.bass, t, n.dur * 1.8, f);
+    }
+    if (n.stab) {
+      const len = n.dur * g.stabLen;
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 2200;
+      f.connect(_djEnv(ctx, m.stab, t, len, N.bus));
+      n.stab.forEach((hz) => {
+        _djOsc(ctx, 'sawtooth', hz, t, len, f, -8);
+        _djOsc(ctx, 'sawtooth', hz, t, len, f, 8);
+      });
+    }
+  } catch (e) {}
+}
+// Break: filter shut at its first bar, opening across its last one.
+function _djBarAutomation(N, n, t) {
+  try {
+    const fq = N.filter.frequency;
+    if (n.section === 'break' && n.barOfSection === 0) {
+      fq.cancelScheduledValues(t); fq.setValueAtTime(400, t);
+    }
+    if (n.section === 'break' && n.barOfSection === n.sectionBars - 1) {
+      fq.setValueAtTime(400, t); fq.exponentialRampToValueAtTime(18000, t + n.dur * 16);
+    }
+    if (n.section !== 'break' && n.barOfSection === 0) fq.setValueAtTime(18000, t);
+  } catch (e) {}
+}
+function _djMayUseAudio() {
+  const ua = typeof navigator !== 'undefined' && navigator.userActivation;
+  return !ua || ua.hasBeenActive;
+}
+
+let _djLoop = null;
+function _djTick() {
+  const L = _djLoop;
+  if (!L || L.paused || _cgAudioHidden) return;
+  const ctx = _cgAudioCtx;
+  if (!ctx) return; // waits for the first gesture (cgArmAudioUnlock)
+  if (ctx.state !== 'running') {
+    if (_djMayUseAudio()) { try { ctx.resume(); } catch (e) {} }
+    L.needsResync = true;
+    return;
+  }
+  const N = _djGraph(ctx);
+  if (!N) return;
+  if (!L.faded) {
+    L.faded = true;
+    const t0 = ctx.currentTime;
+    try {
+      N.bus.gain.cancelScheduledValues(t0);
+      N.bus.gain.setValueAtTime(0, t0);
+      N.bus.gain.linearRampToValueAtTime(1, t0 + (L.fadeIn || 1));
+    } catch (e) {}
+  }
+  if (L.needsResync || L.nextTime < ctx.currentTime) {
+    L.nextTime = ctx.currentTime + 0.06;
+    L.needsResync = false;
+  }
+  while (L.nextTime < ctx.currentTime + CG_LOOP_LOOKAHEAD) {
+    if (L.step === 0 && L.pendingGroove) { L.groove = L.pendingGroove; L.pendingGroove = null; }
+    const g = DJ_GROOVES[L.groove] || DJ_GROOVES.house;
+    const n = djStepAt(L.groove, L.bar, L.step);
+    if (L.step === 0) _djBarAutomation(N, n, L.nextTime);
+    _djPlayStep(ctx, N, n, L.nextTime, g);
+    L.nextTime += n.dur;
+    L.step += 1;
+    if (L.step >= 16) { L.step = 0; L.bar += 1; }
+  }
+}
+function _djArm(L) {
+  if (!L.timer) L.timer = setInterval(_djTick, CG_LOOP_TICK_MS);
+}
+function djMusicStart(groove) {
+  const want = DJ_GROOVES[groove] ? groove : 'house';
+  const L = _djLoop;
+  if (L) {
+    if (L.stopTimer) {
+      // Restarted inside a fade-out: bring it straight back.
+      clearTimeout(L.stopTimer); L.stopTimer = 0;
+      L.faded = false; L.fadeIn = 0.4;
+    }
+    if (L.groove !== want) L.pendingGroove = want; else L.pendingGroove = null;
+    _djArm(L); _djTick();
+    return;
+  }
+  // Never create an AudioContext before the page has had a gesture: that is
+  // what logs the autoplay warning. The unlock listener creates it later.
+  if (!_cgAudioCtx && _djMayUseAudio()) cgAudio();
+  _djLoop = { groove: want, pendingGroove: null, bar: 0, step: 0, nextTime: 0,
+    timer: 0, paused: false, needsResync: true, faded: false, fadeIn: 1, stopTimer: 0 };
+  _djArm(_djLoop);
+  _djTick();
+}
+function djMusicStop() {
+  const L = _djLoop;
+  if (!L || L.stopTimer) return;
+  const N = _djNodes;
+  if (!N || !L.faded || L.paused) { _djClear(); return; }
+  try {
+    const t = N.ctx.currentTime;
+    N.bus.gain.cancelScheduledValues(t);
+    N.bus.gain.setValueAtTime(N.bus.gain.value, t);
+    N.bus.gain.linearRampToValueAtTime(0, t + 0.8);
+  } catch (e) {}
+  L.stopTimer = setTimeout(_djClear, 900);
+}
+function _djClear() {
+  const L = _djLoop;
+  if (!L) return;
+  try { clearInterval(L.timer); } catch (e) {}
+  try { clearTimeout(L.stopTimer); } catch (e) {}
+  _djLoop = null;
+  try { if (_djNodes) { const t = _djNodes.ctx.currentTime; _djNodes.bus.gain.cancelScheduledValues(t); _djNodes.bus.gain.setValueAtTime(0, t); } } catch (e) {}
+}
+function djMusicPause() {
+  const L = _djLoop;
+  if (!L) return;
+  if (L.stopTimer) { _djClear(); return; }
+  L.paused = true;
+  try { clearInterval(L.timer); } catch (e) {}
+  L.timer = 0;
+  try { if (_djNodes) { const t = _djNodes.ctx.currentTime; _djNodes.bus.gain.cancelScheduledValues(t); _djNodes.bus.gain.setValueAtTime(0, t); } } catch (e) {}
+}
+function djMusicResume() {
+  const L = _djLoop;
+  if (!L || !L.paused) return;
+  L.paused = false; L.needsResync = true; L.faded = false; L.fadeIn = 0.4;
+  _djArm(L); _djTick();
+}
+function djMusicPlaying() { return !!(_djLoop && !_djLoop.stopTimer && !_djLoop.paused); }
+
+function cgApplyMusicVolume() {
+  const v = cgPrefs.musicVolume;
+  try {
+    if (cgMusicMaster) {
+      const t = cgMusicMaster.context.currentTime;
+      cgMusicMaster.gain.cancelScheduledValues(t);
+      cgMusicMaster.gain.setTargetAtTime(djGain(cgPrefs.sound, cgPrefs.music, v), t, 0.05);
+    }
+  } catch (e) {}
+  try { if (_bgMusicGainNode) _bgMusicGainNode.gain.value = cgOwnMusicLevel(v); } catch (e) {}
+  try { if (_cgLoopOutNode) _cgLoopOutNode.gain.value = cgOwnMusicFactor(v); } catch (e) {}
+}
+
+/* Web Audio is not <audio>: the bridge pauses media elements when the shell
+   hides this app, and does nothing for an AudioContext. So music pauses here,
+   on the shell's own signal and on the page's. */
+let _shellHidden = false, _bgSuspendedByHide = false;
+function _cgSyncAudioHidden() {
+  let docHidden = false;
+  try { docHidden = !!document.hidden; } catch (e) {}
+  const hidden = _shellHidden || docHidden;
+  if (hidden === _cgAudioHidden) return;
+  _cgAudioHidden = hidden;
+  if (hidden) {
+    djMusicPause();
+    try {
+      if (_bgAudioCtx && _bgAudioCtx.state === 'running') { _bgAudioCtx.suspend(); _bgSuspendedByHide = true; }
+    } catch (e) {}
+  } else {
+    djMusicResume();
+    try { if (_bgSuspendedByHide && _bgAudioCtx) _bgAudioCtx.resume(); } catch (e) {}
+    _bgSuspendedByHide = false;
+  }
+}
+(function installAudioVisibility() {
+  try {
+    window.addEventListener('usernode:visibility-changed', (e) => {
+      _shellHidden = !!(e && e.detail && e.detail.hidden);
+      _cgSyncAudioHidden();
+    });
+    document.addEventListener('visibilitychange', _cgSyncAudioHidden);
+  } catch (e) {}
+})();
+/* The first gesture unlocks audio. A deep link with ?music=1, or a reload into
+   a game, reaches the music hook before any tap; the loop waits until here. */
+(function cgArmAudioUnlock() {
+  const unlock = () => {
+    if (_cgAudioHidden) return;
+    try {
+      if (_djLoop && !_cgAudioCtx) cgAudio();
+      if (_cgAudioCtx && _cgAudioCtx.state === 'suspended') _cgAudioCtx.resume();
+    } catch (e) {}
+  };
+  try {
+    window.addEventListener('pointerdown', unlock, true);
+    window.addEventListener('keydown', unlock, true);
+  } catch (e) {}
+})();
 
 
 // Discrete-gesture hook: tap / swipe / long-press / double-tap on an element.

@@ -1759,6 +1759,60 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* Background DJ music. The arrangement is a pure function of (groove, bar,
+     step), so its shape is asserted here without any audio. */
+  check('dj-music-pattern', () => {
+    for (const name of Object.keys(DJ_GROOVES)) {
+      const g = DJ_GROOVES[name];
+      if (!(g.bpm >= 90 && g.bpm <= 140)) throw new Error(name + ' bpm ' + g.bpm + ' out of range');
+      if (g.chords.length !== g.roots.length) throw new Error(name + ' chords and roots disagree');
+      const mainBar = DJ_SECTIONS[0][1];
+      const breakBar = DJ_SECTIONS[0][1] + DJ_SECTIONS[1][1];
+      if (djStepAt(name, mainBar, 0).section !== 'main') throw new Error('bar ' + mainBar + ' is not main');
+      if (djStepAt(name, breakBar, 0).section !== 'break') throw new Error('bar ' + breakBar + ' is not the break');
+      for (const s of [0, 4, 8, 12]) {
+        if (!djStepAt(name, mainBar, s).kick) throw new Error(name + ' main has no kick on ' + s);
+      }
+      for (let s = 0; s < 16; s++) {
+        if (djStepAt(name, breakBar, s).kick) throw new Error(name + ' break has a kick on ' + s);
+      }
+      for (let bar = 0; bar < DJ_CYCLE_BARS; bar++) {
+        for (let s = 0; s < 16; s++) {
+          const n = djStepAt(name, bar, s);
+          if (n.bass !== null && !(n.bass > 0)) throw new Error(name + ' bad bass pitch');
+          if (n.stab && !n.stab.every((hz) => hz > 0)) throw new Error(name + ' bad stab pitch');
+          if (!(n.dur > 0)) throw new Error(name + ' step has no duration');
+          const again = djStepAt(name, bar + DJ_CYCLE_BARS, s);
+          if (JSON.stringify(n) !== JSON.stringify(again)) throw new Error(name + ' is not periodic over the cycle');
+        }
+      }
+    }
+    if (djGrooveFor(null) !== 'house') throw new Error('no game should mean house');
+    for (const game of GAMES) {
+      if (!DJ_GROOVES[djGrooveFor(game)]) throw new Error(game.id + ' has no groove');
+    }
+    return true;
+  });
+
+  // The three games that already score themselves keep their own soundtrack;
+  // two musics at once would be noise.
+  check('dj-music-own-soundtrack', () => {
+    const own = GAMES.filter((g) => g.ownMusic).map((g) => g.id).sort().join(',');
+    if (own !== 'bounce,chutes-ladders,minesweeper') throw new Error('ownMusic ids are ' + own);
+    return true;
+  });
+
+  check('music-prefs', () => {
+    if (cgReadMusicPref(null) !== false) throw new Error('music must default to off');
+    if (cgReadMusicPref('0') !== false) throw new Error("'0' must read as off");
+    if (cgReadMusicPref('1') !== true) throw new Error("'1' must read as on");
+    if (cgClampVolume(150) !== 100 || cgClampVolume(-5) !== 0) throw new Error('volume is not clamped');
+    if (djGain(false, true, 80) !== 0 || djGain(true, false, 80) !== 0) throw new Error('muted music still has gain');
+    if (!(djGain(true, true, 80) > 0)) throw new Error('music on has no gain');
+    if (Math.abs(cgOwnMusicLevel(CG_MUSIC_VOLUME_DEFAULT) - BG_MUSIC_GAIN) > 1e-9) throw new Error('default volume changed the own soundtracks');
+    return true;
+  });
+
   /* A HELD CONTROL MUST STILL BE THERE. tapProps sets [data-pressed] on
      pointerdown and acts on pointerup, so any rule that takes a pressed
      element out of the flow breaks the press outright: it is not under the

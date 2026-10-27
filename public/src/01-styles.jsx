@@ -2880,6 +2880,22 @@ ${emitTapHighlightRules()}
   font-size: 16px;   /* iOS zooms a focused input under 16px */
 }
 .cg-settings-h4-spaced { margin-top: 1.15rem; }
+/* Background DJ music: the 🎵 header button and the Settings volume row. */
+.music-btn { position: relative; }
+.music-btn.is-off { opacity: 0.55; }
+.music-btn.is-off::after {
+  content: ''; position: absolute; left: 22%; right: 22%; top: 50%;
+  height: 2px; border-radius: 1px; background: ${C.muted};
+  transform: rotate(-35deg); pointer-events: none;
+}
+.music-btn[data-pressed] { transform: scale(0.92); opacity: 0.8; }
+.music-volume { gap: 0.75rem; }
+.music-volume .name { flex: 0 0 auto; }
+.music-volume input[type="range"] {
+  flex: 1 1 auto; width: 100%; min-width: 0; height: 44px; margin: 0;
+  accent-color: ${C.accent}; touch-action: manipulation; cursor: pointer;
+}
+.music-volume-val { flex: 0 0 3.2em; text-align: right; font-size: 0.8rem; color: ${C.muted}; }
 
 /* ---- Theme picker (light / dark / system) ---- */
 .theme-choice { margin: 0.35rem 0 0.2rem; }

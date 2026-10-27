@@ -39,7 +39,50 @@ function ThemeChoice() {
   );
 }
 
+/* Background DJ music (see djMusicStart). OFF by default: the player turns it
+   on, from this button or from Settings. It is also gated on Sound, so turning
+   music on while Sound is off turns Sound on too, or the button would lie. */
+function MusicButton({ className }) {
+  useCgPrefsVersion();
+  const on = cgPrefs.sound && cgPrefs.music;
+  const toggle = () => {
+    try { cgAudio(); } catch (e) {}
+    if (!on && !cgPrefs.sound) cgSetPref('sound', true);
+    cgSetPref('music', !on);
+    if (!on) cgSound('click');
+  };
+  return (
+    <button
+      type="button"
+      className={(className || 'music-btn') + (on ? '' : ' is-off')}
+      aria-label="Music"
+      aria-pressed={on}
+      title={on ? 'Music: on' : 'Music: off'}
+      {...tapProps(toggle)}
+    >🎵</button>
+  );
+}
+
+function MusicVolumeRow() {
+  useCgPrefsVersion();
+  const v = cgPrefs.musicVolume;
+  return (
+    <div className="cg-setting-row music-volume">
+      <label className="name" htmlFor="cg-music-volume">Music volume</label>
+      <input
+        id="cg-music-volume"
+        type="range" min="0" max="100" step="5"
+        value={v}
+        onChange={(e) => cgSetMusicVolume(Number(e.target.value))}
+        aria-valuetext={v + '%'}
+      />
+      <span className="mono music-volume-val">{v}%</span>
+    </div>
+  );
+}
+
 function CgSettings({ tick }) {
+  useCgPrefsVersion();
   const [, force] = useState(0);
   const flip = (key) => { cgSetPref(key, !cgPrefs[key]); force(n => n + 1); };
   return (
@@ -50,6 +93,12 @@ function CgSettings({ tick }) {
       <div className="cg-setting-row"><span className="name">Sound</span><CgToggle on={cgPrefs.sound} onClick={() => flip('sound')} /></div>
       <div className="cg-setting-row"><span className="name">Haptics</span><CgToggle on={cgPrefs.haptics} onClick={() => flip('haptics')} /></div>
       <div className="cg-setting-row"><span className="name">Reduced motion</span><CgToggle on={cgPrefs.motion} onClick={() => flip('motion')} /></div>
+      <h4 className="cg-settings-h4-spaced">Music</h4>
+      <div className="cg-setting-row">
+        <span className="name">Music<span className="cg-setting-note">{cgPrefs.sound ? 'A DJ beat while you play' : 'Turn on Sound to hear music'}</span></span>
+        <CgToggle on={cgPrefs.music} onClick={() => flip('music')} />
+      </div>
+      <MusicVolumeRow />
       <h4 className="cg-settings-h4-spaced">Typing</h4>
       {/* #192 — the word games draw their own keyboard, which is also the only
           place the per-letter state is shown. This swaps it for your device's
@@ -619,6 +668,7 @@ function ClassicShell({ game, onExit, onNewGame, sheetSections, children, menuCo
     return want && sections.some(s => s.id === want) ? want : null;
   })();
   const [sheetOpen, setSheetOpen] = useState(!!deepSection);
+  useCgPrefsVersion();
   const [, force] = useState(0);
   const [active, setActive] = useState(deepSection || sections[0].id);
   const open = (id) => { setActive(id || sections[0].id); setSheetOpen(true); cgSound('click'); };
@@ -639,6 +689,7 @@ function ClassicShell({ game, onExit, onNewGame, sheetSections, children, menuCo
         {onNewGame && !hideQuickReset && <button className="cg-btn" onClick={() => { cgSound('click'); onNewGame(); }} title="New game" aria-label="New game">↺</button>}
         {onChat && <button className="cg-btn" onClick={() => { cgSound('click'); onChat(); }} title="Game chat" aria-label="Game chat">💬</button>}
         {onHowTo && <button className="cg-btn" onClick={() => { cgSound('click'); onHowTo(); }} title="How to play" aria-label="How to play">?</button>}
+        {!game.ownMusic && <MusicButton className="cg-btn music-btn" />}
         <button className="cg-btn" onClick={toggleSound} title="Sound" aria-label="Sound">{cgPrefs.sound ? '🔊' : '🔇'}</button>
         <button className="cg-btn" onClick={() => open()} title="Menu" aria-label="Menu">☰</button>
       </div>

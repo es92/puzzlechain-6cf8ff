@@ -41,6 +41,15 @@ function WinEarned({ value }) {
   return <span className="we-v" data-win-earned={n}>+{shown}</span>;
 }
 
+/* Starts and stops the DJ loop (02-prefs-theme.jsx) as `want` changes. The
+   loop itself waits for the first gesture before it makes a sound. */
+function useGameMusic(want, groove) {
+  useEffect(() => {
+    if (want) djMusicStart(groove); else djMusicStop();
+  }, [want, groove]);
+  useEffect(() => () => djMusicStop(), []);
+}
+
 /* Copy-to-clipboard Share button for the win/loss result cards. Declared at
    MODULE scope on purpose, and this is the whole of issue #340: defined
    inside App it got a new function identity on every App render, and React
@@ -2445,6 +2454,7 @@ function App() {
               <div className="game-title">
                 <span>{currentGame.icon}</span> {currentGame.name}
               </div>
+              {!currentGame.ownMusic && <MusicButton className="help-btn music-btn" />}
               {authOk && (
                 <button
                   className="help-btn"
@@ -2553,6 +2563,13 @@ function App() {
     ? { ...practiceResult, isPractice: true }
     : null;
   const resultData = winData || loseData || practiceResultData;
+
+  // Background DJ music: only while a board is live, never over a results
+  // card or the band-advance screen, and never for a game with its own score.
+  useCgPrefsVersion();
+  const musicWanted = cgPrefs.sound && cgPrefs.music && screen === 'game' && !!currentGame
+    && !resultData && !advance && !currentGame.ownMusic;
+  useGameMusic(musicWanted, djGrooveFor(currentGame));
 
   const fitActive = (screen === 'game' && !!currentGame && !!currentGame.fitShell
     && (!resultData || reviewMode))
