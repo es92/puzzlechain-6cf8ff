@@ -564,6 +564,17 @@ body {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
   overflow: hidden;
 }
+/* #381 — the derived "How to play:" note. Sits under .card-desc and takes the
+   same two-line floor/ceiling, so one-line and clamped notes push the footer to
+   the same place and the wall stays even. Not tappable: it is reading only. */
+.card-howto {
+  font-size: 0.78rem; color: ${C.muted}; line-height: 1.35;
+  min-height: 2.7em; margin: -0.35rem 0 0.75rem;
+  flex: 0 0 auto;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.card-howto strong { color: ${C.text}; font-weight: 600; }
 
 /* #167 — the state footer. margin-top: auto is what pins it to the bottom of a
    stretched tile; .card-desc's margin-bottom is the minimum gap above it. .tag
@@ -1599,6 +1610,7 @@ ${emitTapHighlightRules()}
     min-height: 2.6em;
     margin-bottom: 0.5rem;
   }
+  .grid > .card .card-howto { font-size: 0.7rem; margin: -0.2rem 0 0.5rem; }
   .grid > .card .card-daily-badge {
     top: 0.45rem;
     /* The compact phone metrics re-cornered the badge into the pin's 44px

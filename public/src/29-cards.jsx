@@ -318,6 +318,23 @@ const homeSearchMatch = (card, query) => {
 const cardAnchorId = (card) => card.gameId || (card.modes[0] && card.modes[0].gameId) || null;
 const cardPinId = cardAnchorId;
 
+/* #381 — the card's how-to line: the first sentence of the first How to play
+   step of the game the card anchors on. Derived, never written out, so it
+   cannot drift from the modal it summarises. A sentence ends at `. ! ?`
+   followed by whitespace or the end of the string, so "1–6", "one-by-one"
+   and "(or arrow keys)." survive intact. */
+function howToFirstSentence(text) {
+  const t = String(text || '').trim();
+  const m = /^.*?[.!?](?=\s|$)/.exec(t);
+  return m ? m[0] : t;
+}
+function cardHowTo(card) {
+  const id = cardAnchorId(card);
+  const g = id && GAMES.find(x => x.id === id);
+  const step = g && g.howToPlay && g.howToPlay[0];
+  return step ? howToFirstSentence(step.body) : null;
+}
+
 /* Mirrors PIN_LIMIT in server.js. Used ONLY to grey out the control once the
    player is at the cap — the server refuses the 9th pin either way, so the two
    drifting costs a stale tooltip rather than a wrong outcome. */
@@ -364,6 +381,7 @@ function GameCard({ card, attempts, bests, storyProgress, myScores, loading, onP
   // #362 — the all-time best daily streak, never below the current one so a
   // streaking player reads "you are at your record" when they tie it.
   const best = Math.max(bestStreak || 0, streak || 0);
+  const howto = cardHowTo(card);
 
   // State line, per recommendation 04: the card reports where you stand
   // instead of spending its width on buttons that repeat the mode labels.
@@ -423,6 +441,11 @@ function GameCard({ card, attempts, bests, storyProgress, myScores, loading, onP
       <div className="card-icon">{card.icon}</div>
       <div className="card-name">{card.name}</div>
       <div className="card-desc">{card.desc}</div>
+      {howto && (
+        <div className="card-howto" title={howto}>
+          <strong>How to play:</strong> {howto}
+        </div>
+      )}
       {/* #313 — the state footer. The tag and the streak pill share one row;
           without the wrapper the pill (a flex item like the tag) drops to
           its own line and pushes the buttons down. */}

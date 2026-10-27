@@ -2074,6 +2074,34 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
+  /* #381 — every card's derived how-to line. The line is never written out, so
+     the failure this guards is a card whose anchor id no longer resolves to a
+     GAMES entry with howToPlay (a renamed or removed id) or a splitter that
+     cuts a sentence in the middle. Assert both the derivation and a known
+     sentence shape. */
+  check('card-howto-every-card', () => {
+    if (typeof howToFirstSentence !== 'function' || typeof cardHowTo !== 'function') {
+      throw new Error('howToFirstSentence / cardHowTo are not defined');
+    }
+    if (howToFirstSentence('A b. C d.') !== 'A b.') {
+      throw new Error('howToFirstSentence split "' + howToFirstSentence('A b. C d.') + '"');
+    }
+    for (const card of GAME_CARDS) {
+      const id = card.gameId || (card.modes[0] && card.modes[0].gameId);
+      const g = id && GAMES.find(x => x.id === id);
+      const body = g && g.howToPlay && g.howToPlay[0] && g.howToPlay[0].body;
+      if (!body) throw new Error(card.name + ' (' + id + ') has no first How to play step');
+      const line = cardHowTo(card);
+      if (typeof line !== 'string' || !line.trim()) {
+        throw new Error(card.name + ' (' + id + ') rendered no how-to line');
+      }
+      if (line.length > body.length) {
+        throw new Error(card.name + ' how-to line is longer than its source body');
+      }
+    }
+    return true;
+  });
+
   /* #167 — the games grid must read as even tiles. Measured, because every way
      this regresses is a layout effect no static scan sees: re-adding
      `align-items: start` to .grid, dropping `grid-auto-rows: 1fr`, an unclamped

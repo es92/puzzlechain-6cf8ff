@@ -1625,6 +1625,11 @@
       "expectSelector": ".grid > .card .card-desc"
     },
     {
+      "name": "Game card shows a how-to-play line",
+      "path": "/",
+      "expectSelector": ".grid > .card .card-howto"
+    },
+    {
       "name": "Paired card mode buttons render side by side",
       "path": "/",
       "expectSelector": ".grid > .card .card-modes .card-mode-btn"

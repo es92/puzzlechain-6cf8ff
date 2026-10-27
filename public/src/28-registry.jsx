@@ -35,7 +35,6 @@ const GAMES = [
     manifest: { scoreDirection: 'higher', tieBreak: 'time-then-steps', sessionLength: 'medium', input: 'tap', undo: 'free' },
     fitShell: true,
     howToPlay: [
-      { title: 'Pick a board', body: 'Choose 9×9 Classic (worth double points) or the quick 6×6 Mini. The clock only starts once you pick.' },
       { title: 'Fill the grid', body: 'Tap a cell, then pick a number. Every row, column, and box must contain each number exactly once. Overwrite freely — mistakes cost steps, not the game.' },
       { title: 'Score', body: 'Faster solves with fewer steps score higher. Everyone gets the same boards today.' },
     ],
