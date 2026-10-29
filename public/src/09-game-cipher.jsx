@@ -1165,7 +1165,8 @@ function CryptoWordleGame({ onWin, onLose, onStepChange, offset, savedProgress, 
         }
       });
       if (active) {
-        // Guess grid.
+        // Guess grid, on a board of its own rather than loose squares.
+        drawBoardPlate(ctx, boardX, boardY, wordLen * (tile + gapPx) - gapPx, maxGuesses * (tile + gapPx) - gapPx, { pad: 8, W, H, radius: 12 });
         ctx.save();
         ctx.translate(boardX, boardY);
         ctx.textAlign = 'center';
