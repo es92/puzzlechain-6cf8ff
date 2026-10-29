@@ -48,6 +48,18 @@ let SERVER_DAILY_SEEDS = {};
 // that can only 401.
 let GUEST_MODE = false;
 
+// Signing in from inside the app. At the app's own address the platform
+// bridge offers usernode.askForAccount: its "Make an account" sheet signs the
+// visitor up or in and brings them back to this page, where loadDaily commits
+// their pending runs. Inside a frame (Homeroom's landing viewer) the bridge
+// has no sheet, and the page around the frame offers sign-in instead.
+function canAskForAccount() {
+  return !!(window.usernode && typeof window.usernode.askForAccount === 'function');
+}
+function askForAccount(action) {
+  if (canAskForAccount()) window.usernode.askForAccount({ action });
+}
+
 /* #367 — a PRACTICE RUN's random seed, opened and closed by the shell. Same
    shape as the arcade run seed below: exactly one run is live at a time, so a
    module-scope value lets every daily generator pick it up (dailyRng,

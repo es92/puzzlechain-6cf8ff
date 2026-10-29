@@ -1,14 +1,29 @@
 /* ============================================================
    Account indicator — confirms the signed-in Usernode account. Renders
-   nothing while the auth check is in flight, so "Signed out" only ever
-   shows after sign-in has definitively failed.
+   nothing while the auth check is in flight, or when it failed because the
+   backend is down (the lobby's error notice says so), so the signed-out
+   state only ever shows for a visitor who really is signed out. For them it
+   is the way in: "Sign in" opens the bridge's account sheet where there is
+   one (canAskForAccount), and plain "Guest" elsewhere.
    ============================================================ */
-function AccountChip({ loading, authOk, user, onOpen }) {
-  if (loading) return null;
+function AccountChip({ loading, failed, authOk, user, onOpen }) {
+  if (loading || failed) return null;
   if (!authOk || !user) {
+    if (canAskForAccount()) {
+      return (
+        <button
+          type="button"
+          className="account-chip guest"
+          title="Sign in to save your scores and keep a streak."
+          onClick={() => askForAccount('save your scores')}
+        >
+          Sign in
+        </button>
+      );
+    }
     return (
-      <div className="account-chip off" title="Not signed in — progress won't be saved. Open this app inside Usernode.">
-        <span className="dot" /> <span className="who">Signed out</span>
+      <div className="account-chip guest" title="Not signed in. Your scores won't be saved.">
+        Guest
       </div>
     );
   }

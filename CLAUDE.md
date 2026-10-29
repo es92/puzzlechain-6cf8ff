@@ -545,9 +545,13 @@ describe it as static-only.
   Progress is keyed to the Usernode account and persists across reloads
   and devices. The nav's `AccountChip` reads `user` from `/api/daily`
   to show the signed-in username on one line (nothing renders while the
-  load is in flight; a red "Signed out" state appears only after the
-  call 401s / the DB is unreachable). Tapping it opens the viewer's own
-  profile screen (stats, recent games, badges).
+  load is in flight or when the backend is unreachable). Tapping it opens
+  the viewer's own profile screen (stats, recent games, badges). Signed
+  out, it is a quiet "Sign in" button that opens the platform bridge's
+  account sheet (`askForAccount`, top-level page at the app's own address
+  only), or a plain "Guest" label where the bridge has no sheet (inside
+  a frame). It is never an error state: signed out is how a visitor
+  without an account plays.
 - **Frontend** hydrates this on mount (`loadDaily`), claims on launch,
   persists on win, and renders a `LockedScreen` with an HH:MM:SS
   countdown driven by a **server-time offset** (`serverNowUtc −
@@ -712,17 +716,31 @@ mind when touching the daily flow:
   daily seed — the anchor phase 8's anonymous-commit check verifies
   against.
 - **Public read allowlist.** `PUBLIC_API_GET` (regex list next to
-  `PUBLIC_API_PATHS`) opens four GET routes to anonymous callers:
+  `PUBLIC_API_PATHS`) opens GET routes to anonymous callers:
   `GET /api/public/daily` (server time, reset, seeds, game directory —
   the signed-out substitute for `GET /api/daily`; the client falls
-  back to it on 401 so the signed-out lobby stays server-anchored),
-  plus the two daily leaderboards and the classic leaderboard (all
-  null-guard `req.user`: anonymous ⇒ `me: null`,
+  back to it when signed out so the signed-out lobby stays
+  server-anchored), plus the daily, classic, arcade, all-time and ladder
+  leaderboards (all null-guard `req.user`: anonymous ⇒ `me: null`,
   `isCurrentUser: false`). Anonymous hits go through a simple
   in-memory per-IP sliding window (60/min, `publicRateLimited`);
   token-bearing traffic is not limited. Everything mutating stays
   deny-by-default — add new public reads to `PUBLIC_API_GET`
   consciously, with the same null-guard discipline.
+- **Signed-out play is what Homeroom lists.** Homeroom's app directory
+  shows "Try it" or "Sign in to use" from a probe that fetches `GET /`
+  and `GET /api/` with no credentials; a 401 from `/api/` reads as
+  "account required". So `GET /api` (with or without the slash) answers
+  anyone with `{ app, signedIn }`, and `GET /api/daily` answers a
+  signed-out caller `200 { signedIn: false }` rather than a 401, which
+  the browser logs as a console error on every guest's first load. Keep
+  both open, or the app goes back to being listed as sign-in only.
+  A signed-out WRITE is answered `401 { error: 'account_required' }`,
+  the answer the platform's edge gives a guest's browser writes, which
+  the bridge turns into its "Make an account to continue" sheet; a
+  signed-out read keeps `{ error: 'Not authenticated' }`, which it
+  leaves alone. A guest-persona check (`"persona": "guest"` on `/`)
+  holds the signed-out lobby to a clean console.
 
 ## Game Corner phase 3 — shell-owned chrome
 

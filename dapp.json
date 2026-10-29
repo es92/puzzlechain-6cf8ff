@@ -318,6 +318,12 @@
       "expectText": "free as a guest"
     },
     {
+      "name": "A visitor with no account lands in the guest lobby with a way to sign in",
+      "path": "/",
+      "persona": "guest",
+      "expectSelector": ".nav .account-chip.guest"
+    },
+    {
       "name": "Friends screen offers player search",
       "path": "/?screen=friends&demo=friendsearch",
       "expectSelector": ".friends-search-input"

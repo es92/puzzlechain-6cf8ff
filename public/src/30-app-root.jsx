@@ -613,9 +613,10 @@ function App() {
             return { ok: false, status: 0, body: null };
           }
         })();
-    // 401 → the normal guest lobby; 5xx / unreachable → the error notice.
+    // Signed out ({ signedIn: false }, or a 401) → the normal guest lobby;
+    // 5xx / unreachable → the error notice.
     setDailyErr(!ok && (status === 0 || status >= 500));
-    if (ok && body) {
+    if (ok && body && body.signedIn !== false) {
       GUEST_MODE = false;
       setAuthOk(true);
       setUser(body.user || null);
@@ -2768,6 +2769,7 @@ function App() {
           )}
           <AccountChip
             loading={loading}
+            failed={dailyErr}
             authOk={authOk}
             user={user}
             onOpen={() => {
@@ -3611,11 +3613,15 @@ function App() {
                     : <span>Great solve — today's board takes signed-in entries</span>}
                 </div>
                 <div className="guest-note">
-                  🔑 <strong>Make it count — sign in.</strong> Open Game Corner inside
-                  Usernode and this exact run joins today's leaderboard and starts
-                  your streak.
-                  {winData.guestSaved && ' Your run is saved on this device — it counts if you sign in before midnight UTC.'}
+                  🔑 <strong>Make it count.</strong> Sign in and this exact run joins
+                  today's leaderboard and starts your streak.
+                  {winData.guestSaved && ' Your run is saved on this device. It counts if you sign in before midnight UTC.'}
                 </div>
+                {canAskForAccount() && (
+                  <button className="tappable guest-signin" {...tapProps(() => askForAccount('count this run'))}>
+                    Sign in
+                  </button>
+                )}
               </div>
             )}
             {/* Issue #183 — the Story ladder's completion badge. Deliberately a
@@ -3753,8 +3759,13 @@ function App() {
             </div>
             {loseData.guest && (
               <div className="guest-note" style={{ marginBottom: '0.8rem' }}>
-                🔑 Playing as a guest — sign in inside Usernode to lock in streaks
-                and appear on daily boards.
+                🔑 Playing as a guest. Sign in to keep a streak and appear on
+                daily boards.
+                {canAskForAccount() && (
+                  <button className="tappable guest-signin" {...tapProps(() => askForAccount('keep a streak'))}>
+                    Sign in
+                  </button>
+                )}
               </div>
             )}
             {/* Daily board only — see the note on the win card above. */}

@@ -2229,6 +2229,7 @@ async function ensureUser(userId, username, usernode_pubkey) {
 // on subsequent fetches.
 const PUBLIC_API_PATHS = new Set(['/health', '/favicon.ico']);
 const PUBLIC_PREFIXES = ['/explorer-api/'];
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // GET-only public read allowlist (phase 2 / spec §6.10): the anonymous-play
 // surface. Path PATTERNS (not exact paths) because two of them carry a
@@ -2250,6 +2251,17 @@ const PUBLIC_API_GET = [
   // #188 — the all-time board is the same shape as the two above and opens on
   // the same terms; its handler null-guards req.user too.
   /^\/api\/alltime\/[A-Za-z0-9_-]+\/leaderboard$/,
+  // Signed-out play. Homeroom's app directory decides whether a visitor
+  // without an account can use the app by fetching GET / and GET /api/ with
+  // no credentials: a 401 from /api/ reads as "account required", which is
+  // why the guest lobby above was listed as sign-in only. The API root says
+  // only whether the caller is signed in.
+  /^\/api\/?$/,
+  // GET /api/daily answers a signed-out caller { signedIn: false } with a 200
+  // rather than a 401, which the browser logs as a console error on every
+  // guest's first load (and the platform's checks fail a page for). The
+  // handler returns before anything that reads req.user.
+  /^\/api\/daily$/,
 ];
 
 // Simple in-memory per-IP sliding window over the public GET surface — the
@@ -2313,7 +2325,14 @@ app.use((req, res, next) => {
       }
       return next();
     }
-    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    // A signed-out write gets the answer the platform's edge gives a guest's:
+    // the bridge turns `account_required` into its "Make an account to
+    // continue" sheet. Reads keep the plain 401, which the bridge leaves alone.
+    if (!req.user) {
+      return res.status(401).json(WRITE_METHODS.has(req.method)
+        ? { error: 'account_required' }
+        : { error: 'Not authenticated' });
+    }
   }
   next();
 });
@@ -2322,6 +2341,10 @@ app.use((req, res, next) => {
 // running or the DB is briefly unreachable; `migrationsReady` is surfaced for
 // diagnostics (true once the boot migration has completed).
 app.get('/health', (_req, res) => res.json({ status: 'ok', migrationsReady }));
+
+// The API root, open to anyone (see PUBLIC_API_GET). Express matches it with
+// and without the trailing slash.
+app.get('/api', (req, res) => res.json({ app: 'Game Corner', signedIn: Boolean(req.user) }));
 
 // ---- Social API ----------------------------------------------------------
 
@@ -2736,6 +2759,10 @@ app.get('/api/daily', async (req, res) => {
     if (IS_STAGING && req.query.demo === 'signedout') {
       return res.status(401).json({ error: 'Not authenticated' });
     }
+    // Signed out (the route is in PUBLIC_API_GET): the client takes this as
+    // the guest lobby and reads GET /api/public/daily for the seeds, as it did
+    // on the 401 this used to be.
+    if (!req.user) return res.json({ signedIn: false });
     // Lazy init: ensure user and stats rows exist
     await ensureUser(req.user.id, req.user.username, req.user.usernode_pubkey);
     // Staging-only demo seed: gives the current viewer a finished attempt

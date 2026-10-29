@@ -280,12 +280,16 @@ body {
 }
 .account-chip .who { display: flex; align-items: center; line-height: 1.2; }
 .account-chip .uname { font-size: 0.82rem; font-weight: 600; }
-.account-chip .dot {
-  width: 0.5rem; height: 0.5rem; border-radius: 50%; flex: 0 0 auto;
+/* Signed out is an ordinary state, not an error: the chip is a quiet
+   "Sign in" button beside the gear (or a plain "Guest" label where there is
+   no sign-in sheet), never the red alarm it used to be. */
+.account-chip.guest {
+  padding: 0.3rem 0.75rem; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+  line-height: 1.2; color: ${C.muted};
 }
-.account-chip.off { border-color: ${C.rose}; }
-.account-chip.off .dot { background: ${C.rose}; }
-.account-chip.off .who { color: ${C.rose}; font-size: 0.82rem; font-weight: 600; }
+button.account-chip.guest { cursor: pointer; color: ${C.text}; transition: border-color 0.12s ease; }
+button.account-chip.guest:hover { border-color: ${C.accent}; }
+button.account-chip.guest:active { opacity: 0.7; }
 .account-chip.on { cursor: pointer; font-family: inherit; color: ${C.text}; transition: border-color 0.12s ease; }
 .account-chip.on:hover { border-color: ${C.accent}; }
 
@@ -3744,6 +3748,13 @@ ${emitTapHighlightRules()}
 .guest-rank strong { color: ${C.gold}; }
 .guest-note { color: ${C.muted}; font-size: 12.5px; line-height: 1.5; }
 .guest-note strong { color: ${C.text}; }
+/* The note's way in, where the bridge has a sign-in sheet (canAskForAccount). */
+.guest-signin {
+  display: block; margin-top: 10px; padding: 8px 16px; border-radius: 999px;
+  border: 1px solid ${C.accent}; background: ${C.accent}; color: white;
+  font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.guest-signin:active, .guest-signin[data-pressed] { opacity: 0.75; }
 .commit-notice {
   border: 1px solid ${ca('emerald','66')}; background: rgb(var(--c-emerald-rgb) / 9%); color: ${C.text};
   border-radius: 12px; padding: 10px 14px; margin-bottom: 1rem; font-size: 13.5px;
@@ -4150,8 +4161,12 @@ html.felt-page body {
   width: 36px; height: 36px; font-size: 15px; font-weight: 800;
   background: #FBF6EA; color: #1C1A17; box-shadow: 0 0 0 2px #D9B35E;
 }
-.nav.felt .account-chip.off { border-color: rgba(242,160,145,0.6); padding: 0.25rem 0.6rem; }
-.nav.felt .account-chip.off .who { color: #F2A091; }
+.nav.felt .account-chip.guest {
+  padding: 0.3rem 0.75rem; color: #A8C3B4;
+  border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.06);
+}
+.nav.felt button.account-chip.guest { color: #F3EBD8; }
+.nav.felt button.account-chip.guest:hover { border-color: #D9B35E; }
 .nav.felt .nav-settings-btn { color: #F3EBD8; border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.06); }
 
 .lobby.fd-lobby {
