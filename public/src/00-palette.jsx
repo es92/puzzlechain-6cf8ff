@@ -5,9 +5,9 @@ const { useState, useEffect, useRef } = React;
    The app's own chrome is felt. The flip-deck lobby set the look (deep green
    felt, cream ink, brass for actions and wins, darker panels laid on it), and
    everything that stays the same from game to game wears it — the nav, a
-   game's header, sheets, the pre-game and result cards. What a game owns is
-   played on its own mat in the game's light or dark look (PALETTES.light /
-   .dark below). The token names are the ones the stylesheet has always used,
+   game's header, sheets, the pre-game and result cards. The things a game
+   brings to the table — its board, pills and buttons — sit on the felt in the
+   game's light or dark look (PALETTES.light / .dark below). The token names are the ones the stylesheet has always used,
    so every ${C.*} re-colours in place.
    ------------------------------------------------------------
    The palette is not baked into the stylesheet as hex: `PALETTES.felt` holds
@@ -35,13 +35,12 @@ const PALETTES = {
     muted:   '#A8C3B4', // sage
     dim:     '#4D7A67', // faint text, dashed rules
   },
-  /* A game is played on its own mat, laid on the felt: everything a game owns
-     (its board, pills, controls and text) takes the game's look, and that
-     look follows the device's light/dark setting (or the Game boards choice
-     in Settings). These two are the light and dark themes the app shipped
-     before felt, kept verbatim because every board was tuned against them.
-     See GAME MATS in 02-prefs-theme.jsx. Same keys as felt, in the same
-     order. */
+  /* A game's things — its board, pills and buttons — sit on the felt like a
+     chess board and a clock on a table, in the game's look, which follows the
+     device's light/dark setting (or the Game boards choice in Settings).
+     These two are the light and dark themes the app shipped before felt,
+     kept verbatim because every board was tuned against them. See GAME
+     AREAS in 02-prefs-theme.jsx. Same keys as felt, in the same order. */
   light: {
     bg:      '#FAF6EE', // ivory paper
     surface: '#F3EDDF', // deeper paper

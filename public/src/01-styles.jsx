@@ -8,16 +8,6 @@ const css = `
 ${paletteVars('felt')}
 }
 
-/* A game's mat (GAME MATS in 02-prefs-theme.jsx): everything inside it takes
-   the game's light or dark look, so the game's own rules — which read C.* —
-   resolve to that palette. */
-:root[data-boards="light"] [data-board] {
-${paletteVars('light')}
-}
-:root[data-boards="dark"] [data-board] {
-${paletteVars('dark')}
-}
-
 /* The hosted native kit's accent follows ours, so kit switches, action
    sheets, toasts and pull-to-refresh are brass on felt too. Overridden here,
    never by forking kit CSS. */
@@ -4154,21 +4144,27 @@ body, .cg-shell {
   background-position: 0 0, 0 0, 1px 2px;
 }
 
-/* The mat a game is played on (GAME MATS): the game's page colour, laid on
-   the felt with the felt showing round it. It is the flexible column a fit
-   game sizes its board in, so it flexes exactly like the game root used to. */
-.game-mat {
-  display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  background: var(--c-bg); color: var(--c-text);
-  border-radius: 22px; padding: 12px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.25), 0 14px 34px rgba(0,0,0,0.32);
+/* A game's own area (GAME AREAS): no surface of its own — the game's board,
+   pills and buttons lie on the felt like a chess board and a clock on a
+   table. It marks where canvases draw in the game's light/dark look, and it
+   is the flexible column a fit game sizes its board in, so it flexes like the
+   game root did. */
+.game-area { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.game-wrap.fit .game-area, .cg-area { flex: 1 1 auto; }
+.cg-area { overflow: hidden; }
+/* A board that fills its own canvas but leaves gaps between its cells gets a
+   plate behind them in the game's look, so it reads as one board on the felt
+   (a board drawn with its HUD on one canvas draws its own: drawBoardPlate). */
+:root[data-boards="light"] [data-board] canvas.board-plate { background: ${PALETTES.light.surface}; }
+:root[data-boards="dark"] [data-board] canvas.board-plate { background: ${PALETTES.dark.surface}; }
+[data-board] canvas.board-plate { border-radius: 10px; box-shadow: 0 3px 12px rgba(0,0,0,0.28); }
+/* The few boards whose surface is an HTML box under their canvas (rather than
+   drawn on it) are game objects too, so they take the game's look. */
+:root[data-boards="light"] [data-board] :is(.dsnk-board, .snake-board, .bb-grid, .dr-grid, .t2048-grid, .bounce-board-wrap, .zuma-canvas) {
+${paletteVars('light')}
 }
-.game-felt { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.game-wrap.fit .game-mat, .game-wrap.fit .game-felt { flex: 1 1 auto; }
-/* In ClassicShell the mat sits between the top bar and the bottom edge. */
-.cg-mat {
-  flex: 1 1 auto; padding: 0; overflow: hidden;
-  margin: 0 calc(8px + var(--pc-safe-right)) calc(8px + var(--pc-safe-bottom)) calc(8px + var(--pc-safe-left));
+:root[data-boards="dark"] [data-board] :is(.dsnk-board, .snake-board, .bb-grid, .dr-grid, .t2048-grid, .bounce-board-wrap, .zuma-canvas) {
+${paletteVars('dark')}
 }
 .nav.felt { background: #0A3326; border-bottom-color: rgba(255,255,255,0.10); color: #F3EBD8; }
 .nav .logo svg { display: block; }

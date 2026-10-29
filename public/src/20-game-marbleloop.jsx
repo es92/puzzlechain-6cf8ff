@@ -644,7 +644,7 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
       ctx.restore();
     }
 
-    // Every frame draws in the game's look (GAME MATS).
+    // Every frame draws in the game's look (GAME AREAS).
     const paintFrame = () => withPal(boardMaterialOf(canvas), drawFrame);
     if (!loopRunning) { paintFrame(); return; }
 

@@ -360,23 +360,25 @@ loading mechanism is unusual on purpose.
   Fonts are Plus Jakarta Sans (body), DM Serif Display (headlines: the game
   title, pre-game / result / locked headings, card names) and JetBrains Mono
   (`.mono`, live numbers) — the lobby's pair, everywhere.
-- **Felt for the app, light or dark for the game.** The rule: if it stays
-  the same from game to game, it is felt; if it is the game's own, it is the
-  game's. `PALETTES.felt` (`00-palette.jsx`) is the card table — deep green
-  felt, cream ink, brass for actions and wins, darker panels laid on it — and
-  it is `:root`'s palette: the nav, a game's header, ClassicShell's top bar
-  and sheets, the pre-game, opponent and result cards, Settings, the profile.
-  `<html data-theme="felt">` never changes. A game is played on its **mat**
-  (below), and the mat is `PALETTES.light` or `PALETTES.dark` — the two themes
-  this app shipped before felt, verbatim, because every board was tuned
-  against them. Consequences when writing styles:
-  - Keep using `${C.accent}` — in `css` and in inline `style={{}}` objects. It
-    resolves to brass on the felt and to teal on a mat.
+- **Felt for the app, light or dark for the game's things.** The rule: if it
+  stays the same from game to game, it is felt; what a game brings to the
+  table is the game's. `PALETTES.felt` (`00-palette.jsx`) is the card table —
+  deep green felt, cream ink, brass for actions and wins, darker panels laid
+  on it — and it is `:root`'s palette: the nav, a game's header, ClassicShell's
+  top bar and sheets, the pre-game, opponent and result cards, Settings, the
+  profile, and every HTML menu, tab, list and hint line inside a game.
+  `<html data-theme="felt">` never changes. A game's board, pills and buttons
+  sit on that felt in `PALETTES.light` or `PALETTES.dark` — the two themes this
+  app shipped before felt, verbatim, because every board was tuned against
+  them — like a chess board and a clock on a table. Consequences when writing
+  styles:
+  - Keep using `${C.accent}` — in `css` and in inline `style={{}}` objects. In
+    CSS it is brass (felt); on a game's canvas `PAL.accent` is the look's teal.
   - **Felt is a dark scheme with a light accent**: a solid fill in an accent
     hue on the felt carries dark ink, `var(--c-accent-ink)` (canvas:
-    `PAL.accentInk`), never `#fff`. On a mat accent-ink is white. Selected
-    tabs and chips on the felt are cream with ink, like the lobby's chips;
-    primary buttons are brass pills, like its Play.
+    `PAL.accentInk`), never `#fff`. In the light and dark looks accent-ink is
+    white. Selected tabs and chips on the felt are cream with ink, like the
+    lobby's chips; primary buttons are brass pills, like its Play.
   - **Never concatenate an alpha byte onto a token** (`${C.gold}1f` is
     broken — `var()` isn't a hex string). Use **`ca('gold','1f')`**,
     which emits `rgb(var(--c-gold-rgb) / 12.2%)`.
@@ -392,28 +394,36 @@ loading mechanism is unusual on purpose.
     carved wood, checkers browns, Reversi felt, the goban, playing-card
     faces/suits, Mahjong ivory, and the 2048 / Tile Match / Drop Stack /
     tetromino palettes do NOT follow the look. Only chrome re-colours.
-- **A game sits on its mat, on the felt** (`GAME MATS` in
-  `02-prefs-theme.jsx`). `renderGameBody` wraps the daily game component in
-  `.game-mat[data-board]` under the felt header, ClassicShell wraps its
-  children in `.game-mat.cg-mat[data-board]` between the felt top bar and the
-  felt sheet, and the locked day's review board gets one too. Everything the
-  game owns — board, pills, buttons, hints, clues, setup lists — is inside
-  it.
-  - CSS: `:root[data-boards="light|dark"] [data-board]` re-declares every
-    `--c-*` token for the mat's subtree, so a game's own rules resolve to the
-    look, and the mat paints that look's page with the felt round it.
+- **A game's things sit on the felt** (`GAME AREAS` in `02-prefs-theme.jsx`).
+  `renderGameBody` wraps the daily game component in `.game-area[data-board]`
+  under the felt header, ClassicShell wraps its children in
+  `.game-area.cg-area[data-board]` between the felt top bar and the felt
+  sheet, and the locked day's review board gets one too. It has no surface of
+  its own.
   - Canvas: `useCanvasBoard` draws inside `withPal(boardMaterialOf(canvas),
     …)`, which swaps `PAL`'s values for the duration of the draw and puts the
     felt back after; `PAL_MAT` names the palette being drawn. The hand-rolled
     loops (Hash Rush, Jet Run, Bounce, Marble Loop) wrap their draw the same
-    way. A NEW hand-rolled loop must too, or it draws felt on the mat.
+    way. A NEW hand-rolled loop must too, or its board draws in felt.
+  - **Loose text lies on the felt.** A cui `'label'` draws in the felt's
+    colours, and so must any text a game draws straight onto its canvas
+    outside a board or a control (Daily Cipher's clue and round track, the
+    board games' legends): `withPal('felt', …)` or `PALETTES.felt.*`.
+    Otherwise light mode prints dark ink on green.
   - **Colours computed while rendering are felt.** A cui control's tint or
     ink read from `PAL` in the component body (not in `draw`) holds felt hex;
     `cuiDrawControls` maps any felt value back to the same token in the look
     being drawn (`cuiRetint`). Canvas code that bypasses the cui kit has no
     such net: read `PAL` inside `draw`.
-  - **The card games lie on the felt itself** (registry `onFelt: true` —
-    Klondike, Spider, Mahjong): no mat, felt palette, like the lobby's cards.
+  - **A board needs a surface.** Most boards draw their own. One whose cells
+    leave gaps gets a plate in the look behind them — `drawBoardPlate()` on a
+    canvas that also carries its HUD (Drop Stack, Mine Finder, Nonogram with
+    its clues, Crate Push), class `board-plate` on a canvas the board fills
+    (Minesweeper). The few boards whose surface is an HTML box under the
+    canvas (`.dsnk-board`, `.snake-board`, `.bb-grid`, `.dr-grid`,
+    `.t2048-grid`, `.bounce-board-wrap`, `.zuma-canvas`) take the look by
+    class in `01-styles.jsx`. Cards need nothing: Klondike, Spider and
+    Mahjong lie on the felt like the lobby's.
   - **The look is a preference**: `'system' | 'light' | 'dark'` (default
     `'system'`) under `puzzlechain_theme` — the key the old whole-app theme
     used, so a pinned choice carries over — resolved onto
@@ -671,7 +681,8 @@ The home screen is a card table in felt (its colours are fixed in the `.fd-*`
 rules and the `.fd-lobby` / `.fd-ov` custom properties, the same values as
 `PALETTES.felt`). The felt was the lobby's alone until the in-game pass made
 it the whole app's chrome; `body` and `.cg-shell` paint it, texture included,
-and each game is played on its own light or dark mat laid on it.
+and each game's board and controls sit on it in the game's light or dark
+look.
 
 - **Files.** `29a-deck-art.jsx` — every card's picture, as DATA: a list of
   positioned "bits" on a 150 × 100 grid drawn by `DeckArt` (memoised; the lobby

@@ -2349,6 +2349,7 @@ function NonogramGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
       const radius = Math.max(2, Math.round(cell * 0.14));
       const gridW = cellStep * NG_COLS, gridH = cellStep * NG_ROWS;
       const xEnd = gutterX + gridW - NG_GAP, yEnd = gutterY + gridH - NG_GAP;
+      drawBoardPlate(ctx, 0, 0, xEnd, yEnd, { pad: 6 }); // the clues are printed on the board
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -2960,6 +2961,7 @@ function MineFinderGame({ onWin, onLose, onStepChange, offset, savedProgress, on
     deps: [cell, revealed, flags, boom, pulse, done, W, fmt, steps, flagMode, pressedId],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
+      drawBoardPlate(ctx, boardX, boardY, MF_COLS * cellStep - MF_GAP, MF_ROWS * cellStep - MF_GAP, { pad: 5, W, H });
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.textAlign = 'center';
@@ -3678,6 +3680,7 @@ function CratePushGame({ onWin, onStepChange, offset, savedProgress, onSaveProgr
     deps: [player, crates, done, cpCell, W, fmt, moves, hist.length, pressedId],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
+      drawBoardPlate(ctx, boardX, boardY, cpW, cpH, { pad: 4, W, H }); // the warehouse floor
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.textAlign = 'center';
@@ -4188,6 +4191,7 @@ function DropStackGame({ onWin, onLose, onStepChange, offset, savedProgress, onS
       ctx.fillText('NEXT', sideX + DS_SIDE_W / 2, boardY + 14);
       nextThree.forEach((n, k) => dsDrawMini(ctx, n, sideX + 4, boardY + 18 + k * 32, DS_SIDE_W - 8, 30));
       dsDrawMini(ctx, hold, sideX + 4, boardY + DS_NEXT_H + 8 + 24, DS_SIDE_W - 8, DS_HOLD_H - 30);
+      drawBoardPlate(ctx, gx0, boardY, wellW, wellH, { pad: 4, W, H }); // the well is one board
       ctx.save();
       ctx.translate(gx0, boardY);
       const radius = Math.max(2, Math.round(cell * 0.18));

@@ -213,7 +213,7 @@ function MsBoardCanvas({ theme, revealed, flagged, mineSet, adjacency, gameOverM
     <div className="ms-boardbox" ref={boxRef} onContextMenu={(e) => e.preventDefault()}>
       <canvas
         ref={canvasRef}
-        className="ms-canvas board-canvas"
+        className="ms-canvas board-canvas board-plate"
         role="grid"
         aria-label={`Minesweeper, ${board.cols} by ${board.rows} board, ${revealed.size} cells revealed`}
       />

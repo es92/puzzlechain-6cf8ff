@@ -2451,9 +2451,9 @@ function App() {
                 >?</button>
               )}
             </div>
-            {/* The game's own area, on its mat (GAME MATS): the header above
-                stays felt. Card games (onFelt) lie on the felt instead. */}
-            <div className={currentGame.onFelt ? 'game-felt' : 'game-mat'} data-board={currentGame.onFelt ? undefined : ''}>
+            {/* The game's own area (GAME AREAS): its things take the game's
+                light or dark look; the header above stays felt. */}
+            <div className="game-area" data-board="">
             <GameComponent
               /* #198 — the REPLAY controls on a daily's result card ("Play
                  again for fun", "Another practice run") go through
@@ -3228,8 +3228,8 @@ function App() {
               (real-time dailies with no resume) fall through to result-only. */}
           {lockedReviewable && lockedReview ? (
             <div className="game-body frozen">
-              {/* On its mat, like the live board (GAME MATS). */}
-              <div className={currentGame.onFelt ? 'game-felt' : 'game-mat'} data-board={currentGame.onFelt ? undefined : ''}>
+              {/* The game's own area, like the live board (GAME AREAS). */}
+              <div className="game-area" data-board="">
                 {React.createElement(currentGame.component, {
                   onWin: () => {}, onLose: () => {}, onStepChange: () => {},
                   offset,

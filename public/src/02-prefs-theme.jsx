@@ -142,9 +142,9 @@ applyMotionPref();
 /* ============================================================
    Felt, and a game's own light / dark look
    ------------------------------------------------------------
-   The app's chrome is felt, always: <html data-theme="felt">. A game is
-   played on its own MAT (below), and the mat's look follows a preference —
-   'system' | 'light' | 'dark', default 'system' — resolved onto
+   The app's chrome is felt, always: <html data-theme="felt">. A game's
+   things on the table (GAME AREAS, below) take a look that follows a
+   preference — 'system' | 'light' | 'dark', default 'system' — resolved onto
    <html data-boards="light|dark">. Device-local, like every other pref in
    this app; the key is the one the old whole-app theme used, so a player who
    pinned Light or Dark keeps it. ?theme= sets it (a test and share link).
@@ -193,23 +193,28 @@ function applyTheme(pref, persist) {
 }
 
 /* ============================================================
-   GAME MATS — a game sits on the felt, it is not made of it
+   GAME AREAS — a game's things sit on the felt
    ------------------------------------------------------------
    If it stays the same from game to game, it is felt (the nav, the game
    header, ClassicShell's top bar and sheets, the pre-game and result cards).
-   If it is the game's own (its board, its pills and buttons, its hints and
-   clues), it is the game's, and the game's look is light or dark per the
-   preference above. renderGameBody and ClassicShell lay each game on a mat,
-   `.game-mat[data-board]`:
-   - CSS: :root[data-boards] [data-board] re-declares every --c-* token for
-     the mat's subtree, so the game's own rules (which read C.*) resolve to
-     the light or dark palette, and the mat paints that palette's page.
+   What a game brings to the table — its board, its pills and buttons — sits
+   on the felt in the game's light or dark look, like a chess board and a
+   clock on a table. renderGameBody and ClassicShell wrap each game in
+   `.game-area[data-board]`, which has no surface of its own:
    - canvas: useCanvasBoard (and the hand-rolled loops) draw inside
      withPal(boardMaterialOf(canvas), …), which swaps PAL's values for the
      duration of the draw and puts the felt back after. PAL_MAT names the
-     palette being drawn ('felt' | 'light' | 'dark').
-   The card games (registry flag onFelt: Klondike, Spider, Mahjong) have no
-   mat: their cards lie on the felt itself, like the lobby's.
+     palette being drawn ('felt' | 'light' | 'dark'). Loose text — a cui
+     'label', a clue or a legend drawn straight onto the canvas — lies on the
+     felt, so it draws in the felt's colours (withPal('felt') /
+     PALETTES.felt).
+   - HTML inside a game area is felt (its menus, tabs, hint lines and level
+     lists), except the few boards whose surface is an HTML box under the
+     canvas, which 01-styles.jsx gives the game's look by class.
+   - A board whose cells leave gaps gets a plate in the game's look behind
+     them (drawBoardPlate on a canvas, .board-plate in CSS), so it reads as
+     one board on the table. Cards (Klondike, Spider, Mahjong) need none:
+     they lie on the felt like the lobby's.
    ============================================================ */
 let PAL_MAT = 'felt';
 
@@ -225,7 +230,7 @@ function withPal(name, fn) {
   try { return fn(); } finally { Object.assign(PAL, saved); PAL_MAT = prev; }
 }
 
-// The palette a canvas draws in: its game's look when it is on a mat.
+// The palette a canvas draws in: its game's look when it is in a game area.
 function boardMaterialOf(el) {
   try {
     return el && el.closest && el.closest('[data-board]') ? themeState.resolved : null;

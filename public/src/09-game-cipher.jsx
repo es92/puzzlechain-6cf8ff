@@ -1130,35 +1130,41 @@ function CryptoWordleGame({ onWin, onLose, onStepChange, offset, savedProgress, 
     deps: [roundGuesses, cur, done, tile, shakeFrame, W, fmt, solvedCount, totalScore, revealedExtra, cluesLeft, buying, hintMsg, pressedId, activeIdx],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
-      // Round tracker dots.
-      {
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = '600 13px ' + CUI_MONO;
-        const n = roundState.length;
-        const stepX = 26;
-        let x = Math.floor(W / 2 - ((n - 1) * stepX) / 2);
-        roundState.forEach((r, i) => {
-          /* #194's check mark. The track already carried the cross for a
-             missed word; a solved one was a filled dot, which said "this one
-             is over" but not "you got it". It costs no layout to say both. */
-          ctx.fillStyle = r.solved ? PAL.emerald : r.missed ? PAL.rose : i === activeIdx ? PAL.accent : PAL.dim;
-          ctx.fillText(r.solved ? '✓' : r.missed ? '✗' : i === activeIdx ? '▶' : '○', x, trackY + TRACK_H / 2);
-          x += stepX;
-        });
-      }
+      // The round track, the clue and the hint lines are loose text on the
+      // felt, not on a game object, so they draw in the felt's colours.
+      withPal('felt', () => {
+        // Round tracker dots.
+        {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = '600 13px ' + CUI_MONO;
+          const n = roundState.length;
+          const stepX = 26;
+          let x = Math.floor(W / 2 - ((n - 1) * stepX) / 2);
+          roundState.forEach((r, i) => {
+            /* #194's check mark. The track already carried the cross for a
+               missed word; a solved one was a filled dot, which said "this one
+               is over" but not "you got it". It costs no layout to say both. */
+            ctx.fillStyle = r.solved ? PAL.emerald : r.missed ? PAL.rose : i === activeIdx ? PAL.accent : PAL.dim;
+            ctx.fillText(r.solved ? '✓' : r.missed ? '✗' : i === activeIdx ? '▶' : '○', x, trackY + TRACK_H / 2);
+            x += stepX;
+          });
+        }
+        if (active) {
+          // Clue prose, wrapped.
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'alphabetic';
+          ctx.font = '600 12px ' + CUI_FONT;
+          ctx.fillStyle = PAL.text;
+          cuiWrapText(ctx, `Clue: ${active.def.clue} · ${wordLen} letters`, W / 2, clueY + 14, W - 16, 15, 2);
+          ctx.fillStyle = PAL.gold;
+          ctx.font = '500 11.5px ' + CUI_FONT;
+          activeHints.slice(0, revealedExtra).forEach((h, i) => {
+            cuiWrapText(ctx, `Hint ${i + 1}: ${h}`, W / 2, clueY + CLUE_H + i * XCLUE_H + 12, W - 16, 13, 2);
+          });
+        }
+      });
       if (active) {
-        // Clue prose, wrapped.
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
-        ctx.font = '600 12px ' + CUI_FONT;
-        ctx.fillStyle = PAL.text;
-        cuiWrapText(ctx, `Clue: ${active.def.clue} · ${wordLen} letters`, W / 2, clueY + 14, W - 16, 15, 2);
-        ctx.fillStyle = PAL.gold;
-        ctx.font = '500 11.5px ' + CUI_FONT;
-        activeHints.slice(0, revealedExtra).forEach((h, i) => {
-          cuiWrapText(ctx, `Hint ${i + 1}: ${h}`, W / 2, clueY + CLUE_H + i * XCLUE_H + 12, W - 16, 13, 2);
-        });
         // Guess grid.
         ctx.save();
         ctx.translate(boardX, boardY);

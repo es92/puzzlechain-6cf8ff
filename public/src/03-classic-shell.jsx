@@ -6,7 +6,7 @@ function CgToggle({ on, onClick }) {
 }
 
 /* Light / Dark / System segmented control for the look a game is played in
-   (GAME MATS in 02-prefs-theme.jsx) — the app's chrome is felt whatever it
+   (GAME AREAS in 02-prefs-theme.jsx) — the app's chrome is felt whatever it
    says. Shared by the global Settings sheet and the in-game ☰ → Settings tab,
    so both always agree. */
 const THEME_OPTIONS = [
@@ -695,15 +695,11 @@ function ClassicShell({ game, onExit, onNewGame, sheetSections, children, menuCo
         <button className="cg-btn" onClick={toggleSound} title="Sound" aria-label="Sound">{cgPrefs.sound ? '🔊' : '🔇'}</button>
         <button className="cg-btn" onClick={() => open()} title="Menu" aria-label="Menu">☰</button>
       </div>
-      {/* The game's own area, on its mat (GAME MATS): the top bar above and
-          the sheet below stay felt. Card games lie on the felt instead. */}
-      {game.onFelt
-        ? <CgShellActionsContext.Provider value={actionsApi.current}>{children}</CgShellActionsContext.Provider>
-        : (
-          <div className="game-mat cg-mat" data-board="">
-            <CgShellActionsContext.Provider value={actionsApi.current}>{children}</CgShellActionsContext.Provider>
-          </div>
-        )}
+      {/* The game's own area (GAME AREAS): its things take the game's light or
+          dark look; the top bar above and the sheet below stay felt. */}
+      <div className="game-area cg-area" data-board="">
+        <CgShellActionsContext.Provider value={actionsApi.current}>{children}</CgShellActionsContext.Provider>
+      </div>
       <div className={'cg-sheet-backdrop' + (sheetOpen ? ' open' : '')} onClick={() => setSheetOpen(false)} />
       <div className={'cg-sheet' + (sheetOpen ? ' open' : '')}>
         <div className="cg-sheet-handle" />

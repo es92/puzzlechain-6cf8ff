@@ -257,12 +257,13 @@ function CheckersBoardView({ st, myPlayerNum, isMyTurn, submit }) {
       const w1 = ctx.measureText(t1).width, w2 = ctx.measureText(t2).width;
       let lx = Math.max(4, (side - (w1 + w2 + 40)) / 2);
       ctx.beginPath(); ctx.arc(lx + 6, ly, 6, 0, Math.PI * 2); ctx.fillStyle = palOf(C.accent, '#3A6ECD'); ctx.fill();
-      ctx.fillStyle = PAL.muted; ctx.textAlign = 'left';
+      // The legend's words lie on the felt; its swatches are the pieces.
+      ctx.fillStyle = PALETTES.felt.muted; ctx.textAlign = 'left';
       ctx.fillText(t1, lx + 14, ly);
       lx += w1 + 34;
       ctx.beginPath(); ctx.arc(lx + 6, ly, 6, 0, Math.PI * 2); ctx.fillStyle = '#2b2f3d'; ctx.fill();
       ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = PAL.muted;
+      ctx.fillStyle = PALETTES.felt.muted;
       ctx.fillText(t2, lx + 14, ly);
       ctx.textAlign = 'center';
     },
@@ -437,10 +438,11 @@ function FourInARowView({ st, myPlayerNum, isMyTurn, submit }) {
       let lx = Math.max(4, (W - (w1 + w2 + w3 + 72)) / 2);
       ctx.textAlign = 'left';
       ctx.beginPath(); ctx.arc(lx + 6, ly, 6, 0, Math.PI * 2); ctx.fillStyle = palOf(C.rose, '#CD4B3A'); ctx.fill();
-      ctx.fillStyle = PAL.muted; ctx.fillText(t1, lx + 14, ly);
+      // The legend's words lie on the felt; its swatches are the pieces.
+      ctx.fillStyle = PALETTES.felt.muted; ctx.fillText(t1, lx + 14, ly);
       lx += w1 + 32;
       ctx.beginPath(); ctx.arc(lx + 6, ly, 6, 0, Math.PI * 2); ctx.fillStyle = palOf(C.gold, '#D9A54A'); ctx.fill();
-      ctx.fillStyle = PAL.muted; ctx.fillText(t2, lx + 14, ly);
+      ctx.fillStyle = PALETTES.felt.muted; ctx.fillText(t2, lx + 14, ly);
       lx += w2 + 32;
       ctx.fillText(t3, lx, ly);
       ctx.textAlign = 'center';

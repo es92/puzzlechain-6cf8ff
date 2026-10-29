@@ -660,9 +660,9 @@
       "expectSelector": ".theme-seg-btn.active"
     },
     {
-      "name": "Sudoku is played on its mat",
+      "name": "Sudoku is played in its game area",
       "path": "/?game=sudoku&practice=1&sdk=9",
-      "expectSelector": ".game-wrap .game-mat[data-board] canvas.sdk-canvas"
+      "expectSelector": ".game-wrap .game-area[data-board] canvas.sdk-canvas"
     },
     {
       "name": "The whole shell is felt",
@@ -670,9 +670,9 @@
       "expectSelector": "html[data-theme=\"felt\"] .settings-panel"
     },
     {
-      "name": "Dark game boards apply to a game's mat, not the shell",
+      "name": "Dark game boards apply to a game's things, not the shell",
       "path": "/?theme=dark&game=dropstack&practice=1",
-      "expectSelector": "html[data-theme=\"felt\"][data-boards=\"dark\"] .game-mat[data-board] canvas.ds-canvas"
+      "expectSelector": "html[data-theme=\"felt\"][data-boards=\"dark\"] .game-area[data-board] canvas.ds-canvas"
     },
     {
       "name": "Nav carries your profile avatar",
@@ -978,14 +978,14 @@
       "expectSelector": ".ng-boardbox canvas.ng-canvas"
     },
     {
-      "name": "Nonogram review board is on its mat",
+      "name": "Nonogram review board is in its game area",
       "path": "/?demo=solvedboard&game=nonogram&review=1",
-      "expectSelector": ".game-mat[data-board] .ng-boardbox canvas.ng-canvas"
+      "expectSelector": ".game-area[data-board] .ng-boardbox canvas.ng-canvas"
     },
     {
       "name": "Mine Finder board renders in dark game boards",
       "path": "/?game=minefinder&play=1&theme=dark",
-      "expectSelector": "html[data-boards=\"dark\"] .game-mat canvas.mf-canvas"
+      "expectSelector": "html[data-boards=\"dark\"] .game-area canvas.mf-canvas"
     },
     {
       "name": "Drop Stack well renders",
@@ -993,10 +993,10 @@
       "expectSelector": "canvas.ds-canvas"
     },
     {
-      "name": "Hash Rush is played on its mat",
+      "name": "Hash Rush is played in its game area",
       "path": "/?game=hashrush",
       "expectText": "Start mining",
-      "expectSelector": ".cg-shell .cg-mat[data-board] .hr-wrap"
+      "expectSelector": ".cg-shell .cg-area[data-board] .hr-wrap"
     },
     {
       "name": "Daily Cipher keyboard is drawn with key twins",
@@ -1312,7 +1312,7 @@
     {
       "name": "Word Search board renders in light game boards",
       "path": "/?game=wordhunt&practice=1&theme=light",
-      "expectSelector": "html[data-boards=\"light\"] .game-mat canvas.ws-canvas"
+      "expectSelector": "html[data-boards=\"light\"] .game-area canvas.ws-canvas"
     },
     {
       "name": "Word Search grid is the larger 10x10 board",
@@ -1959,9 +1959,9 @@
       ]
     },
     {
-      "name": "Klondike's cards lie on the felt itself, with no mat",
+      "name": "Klondike's cards lie on the felt itself",
       "path": "/?game=klondike&practice=1",
-      "expectSelector": ".game-felt canvas.kl-canvas"
+      "expectSelector": ".game-area canvas.kl-canvas"
     },
     {
       "name": "All-time scores section on own profile",
