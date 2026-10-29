@@ -328,7 +328,7 @@ function cnlv2DrawPawn(ctx, x, y, h, seat) {
   }
 
   // Seat number on the base.
-  ctx.font = `800 ${Math.max(6, Math.round(u * 0.24))}px 'Space Grotesk', sans-serif`;
+  ctx.font = `800 ${Math.max(6, Math.round(u * 0.24))}px 'Plus Jakarta Sans', sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';

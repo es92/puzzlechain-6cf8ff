@@ -3,34 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#FAF6EE">
+  <meta name="theme-color" content="#0A3326">
 
   <script>
-  // Theme pre-paint applier. Runs BEFORE any style block so a dark-mode
-  // player never sees an ivory flash. Deliberately duplicates the key name
-  // and resolution rule from app.jsx's theme module (THEME_KEY /
-  // resolveTheme) — keep the two in sync if either changes.
+  // Palette pre-paint marker. The app has one palette, felt (PALETTES.felt in
+  // public/src/00-palette.jsx), so this only tags <html> the way the app's
+  // applyTheme() does, before any style block runs.
   (function () {
-    try {
-      var pref = null;
-      try { pref = localStorage.getItem('puzzlechain_theme'); } catch (_) {}
-      if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
-      var resolved = pref;
-      if (pref === 'system') {
-        var dark = false;
-        try {
-          dark = !!(window.matchMedia &&
-                    window.matchMedia('(prefers-color-scheme: dark)').matches);
-        } catch (_) {}
-        resolved = dark ? 'dark' : 'light';
-      }
-      document.documentElement.setAttribute('data-theme', resolved);
-      document.documentElement.setAttribute('data-theme-pref', pref);
-      if (resolved === 'dark') {
-        var m = document.querySelector('meta[name="theme-color"]');
-        if (m) m.setAttribute('content', '#0A0D14');
-      }
-    } catch (_) {}
+    try { document.documentElement.setAttribute('data-theme', 'felt'); } catch (_) {}
   })();
   </script>
 
@@ -115,9 +95,13 @@
       --pc-safe-bottom: var(--un-safe-inset-bottom, env(safe-area-inset-bottom, 0px));
       --pc-safe-left: var(--un-safe-inset-left, env(safe-area-inset-left, 0px));
     }
+    /* Felt, like the app. Hex values duplicate PALETTES.felt on purpose:
+       this block must still work when app.js fails to load, so it cannot
+       depend on the app's design system. */
+    html { color-scheme: dark; background: #0F4A36; }
     body {
-      background: #FAF6EE; color: #1F2B47;
-      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      background: #0F4A36; color: #F3EBD8;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     }
     #boot-loader {
       position: fixed; inset: 0; display: flex; flex-direction: column;
@@ -127,10 +111,10 @@
     }
     #boot-loader .pc-spinner {
       width: 38px; height: 38px; border-radius: 50%;
-      border: 3px solid rgba(11,122,112,0.22); border-top-color: #0B7A70;
+      border: 3px solid rgba(217,179,94,0.24); border-top-color: #D9B35E;
       animation: pc-spin 0.8s linear infinite;
     }
-    #boot-loader .pc-loading-text { color: #5E6A87; font-size: 0.9rem; letter-spacing: 0.02em; }
+    #boot-loader .pc-loading-text { color: #A8C3B4; font-size: 0.9rem; letter-spacing: 0.02em; }
     @keyframes pc-spin { to { transform: rotate(360deg); } }
     .pc-boot-error {
       position: fixed; inset: 0; display: flex; align-items: center;
@@ -141,43 +125,24 @@
     }
     .pc-boot-error .card {
       max-width: 26rem; width: 100%; box-sizing: border-box; text-align: center;
-      background: #FFFFFF; border: 1px solid #E7DFCC; border-radius: 1rem;
+      background: #0C3D2C; border: 1px solid #2A5C4A; border-radius: 1rem;
       padding: 1.75rem 1.5rem;
     }
     .pc-boot-error .glyph { font-size: 2.2rem; line-height: 1; margin-bottom: 0.75rem; }
-    .pc-boot-error h1 { font-size: 1.2rem; margin: 0 0 0.5rem; color: #1F2B47; }
-    .pc-boot-error p { margin: 0 0 1.25rem; color: #5E6A87; font-size: 0.92rem; line-height: 1.45; }
+    .pc-boot-error h1 { font-size: 1.2rem; margin: 0 0 0.5rem; color: #F3EBD8; }
+    .pc-boot-error p { margin: 0 0 1.25rem; color: #A8C3B4; font-size: 0.92rem; line-height: 1.45; }
     .pc-boot-error .btns { display: flex; flex-direction: column; gap: 0.6rem; }
     .pc-boot-error button {
       font: inherit; font-size: 0.92rem; padding: 0.6rem 1rem; border-radius: 0.6rem;
       cursor: pointer; border: 1px solid transparent;
     }
-    .pc-boot-error .primary { background: #0B7A70; color: #fff; }
-    .pc-boot-error .secondary { background: transparent; color: #5E6A87; border-color: #E7DFCC; }
-    .pc-boot-error .secondary.done { color: #1E8F63; border-color: #bfd9c9; }
+    .pc-boot-error .primary { background: #D9B35E; color: #2A1E05; font-weight: 700; }
+    .pc-boot-error .secondary { background: transparent; color: #A8C3B4; border-color: #2A5C4A; }
+    .pc-boot-error .secondary.done { color: #7DD3A0; border-color: rgba(125,211,160,0.45); }
     .pc-boot-error textarea {
       width: 100%; box-sizing: border-box; margin-top: 0.9rem; height: 5.5rem; resize: vertical;
-      background: #F3EDDF; color: #5E6A87; border: 1px solid #E7DFCC; border-radius: 0.5rem;
+      background: #0A3326; color: #A8C3B4; border: 1px solid #2A5C4A; border-radius: 0.5rem;
       padding: 0.5rem; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.72rem;
-    }
-
-    /* Dark boot shell. Hex values are duplicated from app.jsx's PALETTES.dark
-       on purpose: this block must still work when app.jsx fails to load, so it
-       cannot depend on the app's design system. */
-    html[data-theme="dark"] { color-scheme: dark; }
-    html[data-theme="dark"] body { background: #0A0D14; color: #ECEFF6; }
-    html[data-theme="dark"] #boot-loader .pc-spinner {
-      border-color: rgba(14,140,128,0.24); border-top-color: #0E8C80;
-    }
-    html[data-theme="dark"] #boot-loader .pc-loading-text { color: #8B95A8; }
-    html[data-theme="dark"] .pc-boot-error .card { background: #181D29; border-color: #2A3342; }
-    html[data-theme="dark"] .pc-boot-error h1 { color: #ECEFF6; }
-    html[data-theme="dark"] .pc-boot-error p { color: #8B95A8; }
-    html[data-theme="dark"] .pc-boot-error .primary { background: #0E8C80; color: #fff; }
-    html[data-theme="dark"] .pc-boot-error .secondary { color: #8B95A8; border-color: #2A3342; }
-    html[data-theme="dark"] .pc-boot-error .secondary.done { color: #34D399; border-color: #2f6b52; }
-    html[data-theme="dark"] .pc-boot-error textarea {
-      background: #12161F; color: #8B95A8; border-color: #2A3342;
     }
   </style>
 

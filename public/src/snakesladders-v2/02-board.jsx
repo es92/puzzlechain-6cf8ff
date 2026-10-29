@@ -36,7 +36,7 @@ function cnlv2DrawBoardStatic(ctx, side, { V, isMoksha, isLegend, gildAll, skinI
       const meaning = isMoksha ? CNL_MOKSHA_MEANINGS[n] : null;
       if (meaning) {
         const isL = V.ladders[n] !== undefined;
-        ctx.font = `700 ${Math.max(5, Math.round(cs * 0.14))}px 'Space Grotesk', sans-serif`;
+        ctx.font = `700 ${Math.max(5, Math.round(cs * 0.14))}px 'Plus Jakarta Sans', sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillStyle = isL ? PAL.emerald : PAL.rose;
         let name = meaning.name.toUpperCase();

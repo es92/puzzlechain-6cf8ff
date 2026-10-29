@@ -95,7 +95,7 @@ function ProfileScreen({ userId, user: loggedInUser, myScores, onBack, onOpenFri
                 style={{
                   background: profile.following ? C.surface : C.accent,
                   border: `1px solid ${profile.following ? C.border : C.accent}`,
-                  color: profile.following ? C.text : 'white',
+                  color: profile.following ? C.text : 'var(--c-accent-ink)',
                   padding: '0.5rem 1rem',
                 }}
                 onClick={profile.following ? handleUnfollow : handleFollow}

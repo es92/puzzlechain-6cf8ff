@@ -209,7 +209,7 @@ function CnlBoardCanvas({ V, isMoksha, SK, p1Pos, p2Pos, p1Color, p2Color, p2Gly
           }
           const meaning = isMoksha ? CNL_MOKSHA_MEANINGS[n] : null;
           if (meaning) {
-            ctx.font = `700 ${Math.max(5, Math.round(cs * 0.14))}px 'Space Grotesk', sans-serif`;
+            ctx.font = `700 ${Math.max(5, Math.round(cs * 0.14))}px 'Plus Jakarta Sans', sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillStyle = isL ? PAL.emerald : PAL.rose;
             let name = meaning.name.toUpperCase();
@@ -275,7 +275,7 @@ function CnlBoardCanvas({ V, isMoksha, SK, p1Pos, p2Pos, p1Color, p2Color, p2Gly
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#fff';
         ctx.stroke();
-        ctx.font = `800 ${Math.max(7, Math.round(rp * 1.05))}px 'Space Grotesk', sans-serif`;
+        ctx.font = `800 ${Math.max(7, Math.round(rp * 1.05))}px 'Plus Jakarta Sans', sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
@@ -645,7 +645,7 @@ function ChutesLaddersOnlineGame({ onWin, onStepChange, roomId, myPlayerNum, onG
         { id: 'die', kind: 'button', r: [Math.floor(W / 2) - 24, 3, 48, 48], label: st.die == null ? '·' : String(st.die), twinLabel: st.die == null ? 'Die not yet rolled' : `Die showing ${st.die}`, pips: st.die == null ? null : CNL_DIE_PIPS[st.die], font: 20, mono: true, disabled: true },
         { id: 'roll', kind: 'button', r: [W - Math.floor(W * 0.34) - 4, 7, Math.floor(W * 0.34), 40],
           label: status === 'finished' ? 'Game over' : isMyTurn ? 'Roll' : 'Waiting…',
-          solid: isMyTurn, bg: isMyTurn ? palOf(myColor, undefined) : undefined, ink: isMyTurn ? '#fff' : undefined,
+          solid: isMyTurn, bg: isMyTurn ? palOf(myColor, undefined) : undefined, ink: isMyTurn ? PAL.accentInk : undefined,
           disabled: !isMyTurn, action: doRoll },
       ])} />
     </div>

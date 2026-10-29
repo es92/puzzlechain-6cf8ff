@@ -560,9 +560,9 @@
       "expectSelector": ".home-filter-chips .home-chip.on .n"
     },
     {
-      "name": "Game of the day card renders in dark mode (the lobby stays felt)",
-      "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .fd-hero .fd-card"
+      "name": "Game of the day card renders on the felt",
+      "path": "/",
+      "expectSelector": "html[data-theme=\"felt\"] .fd-hero .fd-card"
     },
     {
       "name": "Home shows all the games by shelf",
@@ -655,24 +655,25 @@
       "expectText": "Reduced motion"
     },
     {
-      "name": "Theme picker offers System / Light / Dark",
+      "name": "Settings open on game feedback (one palette, nothing to pick)",
       "path": "/?settings=1",
-      "expectSelector": ".theme-seg-btn.active"
+      "expectText": "Haptics",
+      "expectSelector": ".settings-panel"
     },
     {
-      "name": "System theme is the default and follows the device",
+      "name": "Sudoku's board is a paper page on the felt",
+      "path": "/?game=sudoku&practice=1&sdk=9",
+      "expectSelector": "canvas.sdk-canvas[data-board=\"paper\"]"
+    },
+    {
+      "name": "The whole shell is felt",
       "path": "/?settings=1",
-      "expectText": "Following your device"
+      "expectSelector": "html[data-theme=\"felt\"] .settings-panel"
     },
     {
-      "name": "Dark theme applies to the whole shell",
-      "path": "/?theme=dark&settings=1",
-      "expectSelector": "html[data-theme=\"dark\"] .theme-seg"
-    },
-    {
-      "name": "Light theme can be pinned over the device setting",
-      "path": "/?theme=light&settings=1",
-      "expectSelector": "html[data-theme=\"light\"] .theme-seg"
+      "name": "Drop Stack's well is a screen on the felt",
+      "path": "/?game=dropstack&practice=1",
+      "expectSelector": "canvas.ds-canvas[data-board=\"screen\"]"
     },
     {
       "name": "Nav carries your profile avatar",
@@ -680,26 +681,26 @@
       "expectSelector": ".nav .account-chip.on .avatar"
     },
     {
-      "name": "The lobby is felt in the light theme",
+      "name": "An old light-theme link lands on the felt lobby",
       "path": "/?theme=light",
-      "expectSelector": "html[data-theme=\"light\"] .lobby.fd-lobby"
+      "expectSelector": "html[data-theme=\"felt\"] .lobby.fd-lobby"
     },
     {
-      "name": "The lobby is felt in the dark theme",
+      "name": "An old dark-theme link lands on the felt lobby",
       "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .lobby.fd-lobby"
+      "expectSelector": "html[data-theme=\"felt\"] .lobby.fd-lobby"
     },
     {
-      "name": "Dark theme renders the daily lobby",
-      "path": "/?theme=dark",
+      "name": "The felt lobby lists all games",
+      "path": "/",
       "expectText": "All games",
-      "expectSelector": "html[data-theme=\"dark\"] .home-filter-chips"
+      "expectSelector": "html[data-theme=\"felt\"] .home-filter-chips"
     },
     {
-      "name": "Dark theme renders a per-game leaderboard",
-      "path": "/?demo=locked&theme=dark&game=sudoku",
+      "name": "A per-game leaderboard renders on the felt",
+      "path": "/?demo=locked&game=sudoku",
       "expectText": "Today's leaderboard",
-      "expectSelector": "html[data-theme=\"dark\"] .lboard"
+      "expectSelector": "html[data-theme=\"felt\"] .lboard"
     },
     {
       "name": "Word Sprint pre-game screen",
@@ -978,24 +979,25 @@
       "expectSelector": ".ng-boardbox canvas.ng-canvas"
     },
     {
-      "name": "Nonogram board renders in dark theme too",
-      "path": "/?demo=solvedboard&game=nonogram&review=1&theme=dark",
-      "expectSelector": ".ng-boardbox canvas.ng-canvas"
+      "name": "Nonogram review board is a paper page",
+      "path": "/?demo=solvedboard&game=nonogram&review=1",
+      "expectSelector": ".ng-boardbox canvas.ng-canvas[data-board=\"paper\"]"
     },
     {
-      "name": "Mine Finder board renders in dark theme",
-      "path": "/?game=minefinder&play=1&theme=dark",
-      "expectSelector": "canvas.mf-canvas"
+      "name": "Mine Finder board is a paper page",
+      "path": "/?game=minefinder&play=1",
+      "expectSelector": "canvas.mf-canvas[data-board=\"paper\"]"
     },
     {
-      "name": "Drop Stack well renders in light theme",
-      "path": "/?game=dropstack&play=1&theme=light",
+      "name": "Drop Stack well renders",
+      "path": "/?game=dropstack&play=1",
       "expectSelector": "canvas.ds-canvas"
     },
     {
-      "name": "Hash Rush lanes follow the light theme",
-      "path": "/?game=hashrush&theme=light",
-      "expectText": "Start mining"
+      "name": "Hash Rush plays on a screen",
+      "path": "/?game=hashrush",
+      "expectText": "Start mining",
+      "expectSelector": ".hr-wrap[data-board=\"screen\"]"
     },
     {
       "name": "Daily Cipher keyboard is drawn with key twins",
@@ -1309,9 +1311,9 @@
       "expectSelector": ".cw-board[data-cw-rows=\"2\"]"
     },
     {
-      "name": "Word Search board renders in the light theme",
-      "path": "/?game=wordhunt&practice=1&theme=light",
-      "expectSelector": "canvas.ws-canvas"
+      "name": "Word Search board is a paper page",
+      "path": "/?game=wordhunt&practice=1",
+      "expectSelector": "canvas.ws-canvas[data-board=\"paper\"]"
     },
     {
       "name": "Word Search grid is the larger 10x10 board",
@@ -1465,9 +1467,9 @@
       "expectText": "Choose an opponent"
     },
     {
-      "name": "Card mode icons in the dark theme",
-      "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .fd-cardbtn .fd-mi[data-mode=\"daily\"]"
+      "name": "Card mode icons on the felt",
+      "path": "/",
+      "expectSelector": "html[data-theme=\"felt\"] .fd-cardbtn .fd-mi[data-mode=\"daily\"]"
     },
     {
       "name": "Sudoku has a leaderboards panel with all three boards",
@@ -1896,8 +1898,8 @@
       "expectSelector": ".ng-status[data-ng-tone=\"info\"]"
     },
     {
-      "name": "Nonogram error tone reads in dark mode",
-      "path": "/?game=nonogram&practice=1&ngfill=wrong&theme=dark",
+      "name": "Nonogram error tone reads on its paper",
+      "path": "/?game=nonogram&practice=1&ngfill=wrong",
       "expectSelector": ".ng-status.err"
     },
     {
@@ -1946,8 +1948,8 @@
       "expectSelector": ".badge-chip.locked[data-badge=\"story-minefinder\"]"
     },
     {
-      "id": "theme.accent-teal",
-      "name": "Home filter chip wears the teal accent",
+      "id": "theme.felt-chip",
+      "name": "Home filter chip is cream on the felt",
       "path": "/",
       "expectSelector": ".home-filter-chips .home-chip.on",
       "visual": true,
@@ -1958,9 +1960,9 @@
       ]
     },
     {
-      "name": "Dark theme filter chip wears the teal accent",
-      "path": "/?theme=dark",
-      "expectSelector": "html[data-theme=\"dark\"] .home-filter-chips .home-chip.on"
+      "name": "Klondike's cards lie on the felt itself",
+      "path": "/?game=klondike&practice=1",
+      "expectSelector": "canvas.kl-canvas:not([data-board])"
     },
     {
       "name": "All-time scores section on own profile",

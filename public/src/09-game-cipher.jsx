@@ -1086,7 +1086,7 @@ function CryptoWordleGame({ onWin, onLose, onStepChange, offset, savedProgress, 
       const keyBg = (ch) => keyState[ch] === 'green' ? PAL.emerald
         : keyState[ch] === 'yellow' ? PAL.gold
         : keyState[ch] === 'gray' ? PAL.rose : PAL.border;
-      const keyInk = (ch) => keyState[ch] ? '#fff' : PAL.text;
+      const keyInk = (ch) => keyState[ch] ? PAL.accentInk : PAL.text;
       // Rows 0 and 1 share the top row's key width. Row 1 (9 keys) computing
       // its own width filled the whole kbW, and the old half-key indent then
       // pushed it half a key past the right edge, clipping the L key at every
@@ -1159,7 +1159,8 @@ function CryptoWordleGame({ onWin, onLose, onStepChange, offset, savedProgress, 
         activeHints.slice(0, revealedExtra).forEach((h, i) => {
           cuiWrapText(ctx, `Hint ${i + 1}: ${h}`, W / 2, clueY + CLUE_H + i * XCLUE_H + 12, W - 16, 13, 2);
         });
-        // Guess grid.
+        // Guess grid — the board, a screen on the felt.
+        drawBoardPlate(ctx, boardX, boardY, wordLen * (tile + gapPx) - gapPx, maxGuesses * (tile + gapPx) - gapPx, { pad: 8, W, H, radius: 12 });
         ctx.save();
         ctx.translate(boardX, boardY);
         ctx.textAlign = 'center';
@@ -1300,6 +1301,7 @@ function CryptoWordleGame({ onWin, onLose, onStepChange, offset, savedProgress, 
         <canvas
           ref={canvasRef}
           className="cw-canvas board-canvas"
+          data-board="screen"
           role="img"
           aria-label={active
             ? `Daily Cipher — word ${activeIdx + 1} of ${roundsDef.length}, ${active.guesses.length} of ${maxGuesses} guesses used`

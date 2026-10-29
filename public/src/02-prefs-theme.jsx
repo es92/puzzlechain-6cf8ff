@@ -140,87 +140,74 @@ function applyMotionPref() {
 applyMotionPref();
 
 /* ============================================================
-   Theme preference — light / dark / system (default system)
+   The palette is felt, always
    ------------------------------------------------------------
-   Device-local, like every other pref in this app (there is no
-   server-side prefs table). The stored value is the PREFERENCE
-   ('system' | 'light' | 'dark'); the RESOLVED theme is what lands on
-   <html data-theme>. The same key + resolution logic is duplicated in
-   index.html's inline boot script so the first paint is already
-   correct — keep the two in sync if either changes.
+   There used to be a light / dark / system preference here. The card table
+   replaced both palettes, so there is nothing left to choose: this marks
+   <html data-theme="felt"> (index.html's boot script does the same before
+   first paint) and keeps PAL and the browser's theme-color in step. The
+   old `puzzlechain_theme` key is simply no longer read.
+   `themeState.version` and its subscribers stay because canvas games repaint
+   through useThemeVersion(); with one palette it never moves after boot.
    ============================================================ */
-const THEME_KEY = 'puzzlechain_theme';
-const THEME_PREFS = ['system', 'light', 'dark'];
-
-function readThemePref() {
-  try {
-    const v = localStorage.getItem(THEME_KEY);
-    return THEME_PREFS.indexOf(v) >= 0 ? v : 'system';
-  } catch { return 'system'; }
-}
-
-function systemPrefersDark() {
-  try { return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
-  catch { return false; }
-}
-
-function resolveTheme(pref) {
-  if (pref === 'light' || pref === 'dark') return pref;
-  return systemPrefersDark() ? 'dark' : 'light';
-}
-
-const themeState = { pref: readThemePref(), resolved: 'light', version: 0 };
+const themeState = { resolved: 'felt', version: 0 };
 const themeSubscribers = new Set();
 
-/* Single source of truth for "make the DOM match this preference". */
-function applyTheme(pref, persist) {
-  themeState.pref = THEME_PREFS.indexOf(pref) >= 0 ? pref : 'system';
-  themeState.resolved = resolveTheme(themeState.pref);
+function applyTheme() {
   themeState.version += 1;
-  if (persist) {
-    try { localStorage.setItem(THEME_KEY, themeState.pref); } catch {}
-  }
   try {
     const root = document.documentElement;
-    root.setAttribute('data-theme', themeState.resolved);
-    root.setAttribute('data-theme-pref', themeState.pref);
-    // Canvas games need real hex, not var() references.
-    Object.assign(PAL, PALETTES[themeState.resolved]);
+    root.setAttribute('data-theme', 'felt');
+    root.removeAttribute('data-theme-pref');
+    Object.assign(PAL, palSnapshot('felt'));
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', PALETTES[themeState.resolved].bg);
+    if (meta) meta.setAttribute('content', PALETTES.felt.surface);
   } catch {}
   themeSubscribers.forEach(fn => { try { fn(); } catch {} });
 }
 
-applyTheme(themeState.pref, false);
+/* ============================================================
+   BOARD MATERIALS — a board sits on the felt, it is not made of it
+   ------------------------------------------------------------
+   The felt is the table. A game's playing surface is an object on it, like
+   the cards in the lobby, so it keeps a material of its own: 'paper' (the
+   ivory puzzle page — Sudoku, Word Search, Nonogram…) or 'screen' (the dark
+   arcade well — Drop Stack, Block Fit, Bounce…), following each game's lobby
+   card. A board opts in with data-board="paper|screen" on its container:
+   - CSS: [data-board] re-declares every --c-* token for its subtree, so the
+     board's own rules, which read C.*, resolve to the material.
+   - canvas: useCanvasBoard (and the hand-rolled loops) draw inside
+     withPal(boardMaterialOf(canvas), …), which swaps PAL's values for the
+     duration of the draw and puts the felt back after.
+   Chrome drawn ON a board canvas through the cui kit (cuiDrawControls) stays
+   felt: it is a control, not the board. Cards, tiles and pieces with their
+   own pinned colours are untouched either way, and a board with no
+   data-board (the card games, the wooden boards) lies on the felt itself.
+   ============================================================ */
+const BOARD_MATERIALS = ['paper', 'screen'];
+let PAL_MAT = 'felt';
 
-/* Live OS reaction: only meaningful while the pref is 'system'. Registered
-   once at module scope (not per-component) so it survives every navigation. */
-(() => {
-  try {
-    if (!window.matchMedia) return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => { if (themeState.pref === 'system') applyTheme('system', false); };
-    if (mq.addEventListener) mq.addEventListener('change', onChange);
-    else if (mq.addListener) mq.addListener(onChange); // Safari < 14
-  } catch {}
-})();
-
-/* Components that display the theme (the segmented control, Minesweeper's
-   board) subscribe so an OS-driven flip re-renders them too. */
-function useTheme() {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const fn = () => force(n => n + 1);
-    themeSubscribers.add(fn);
-    return () => { themeSubscribers.delete(fn); };
-  }, []);
-  return {
-    pref: themeState.pref,
-    resolved: themeState.resolved,
-    setPref: (p) => applyTheme(p, true),
-  };
+function palSnapshot(name) {
+  return Object.assign({}, PALETTES[name], { accentInk: DERIVED[name]['accent-ink'] });
 }
+
+function withPal(name, fn) {
+  if (!name || !PALETTES[name] || name === PAL_MAT) return fn();
+  const prev = PAL_MAT, saved = Object.assign({}, PAL);
+  Object.assign(PAL, palSnapshot(name));
+  PAL_MAT = name;
+  try { return fn(); } finally { Object.assign(PAL, saved); PAL_MAT = prev; }
+}
+
+function boardMaterialOf(el) {
+  try {
+    const host = el && el.closest ? el.closest('[data-board]') : null;
+    const m = host ? host.getAttribute('data-board') : null;
+    return BOARD_MATERIALS.indexOf(m) >= 0 ? m : null;
+  } catch (e) { return null; }
+}
+
+applyTheme();
 
 /* Phase 1 — canvas colour correctness.
    `C.x` is the string 'var(--c-x)'. Assigning that to ctx.fillStyle is
@@ -230,7 +217,7 @@ function useTheme() {
    read real values from PAL. These helpers make that cheap and make a
    regression loud instead of silent. */
 
-// Subscribe a canvas game to theme flips so a Light↔Dark toggle repaints.
+// Subscribe a canvas game to palette changes so it repaints with the new values.
 function useThemeVersion() {
   const [v, setV] = useState(themeState.version);
   useEffect(() => {

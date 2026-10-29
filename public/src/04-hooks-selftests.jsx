@@ -88,8 +88,8 @@ function useCanvasBoard(canvasRef, { width, height, draw, deps = [] }) {
   const drawRef = useRef(draw);
   drawRef.current = draw;
   const rafRef = useRef(0);
-  // A Light↔Dark flip must repaint immediately — canvas colours come from PAL,
-  // which re-themes without any React state changing on its own.
+  // A palette change must repaint immediately — canvas colours come from PAL,
+  // which changes without any React state changing on its own.
   const themeV = useThemeVersion();
 
   useEffect(() => {
@@ -112,7 +112,7 @@ function useCanvasBoard(canvasRef, { width, height, draw, deps = [] }) {
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      drawRef.current(ctx, { w: width, h: height, dpr });
+      withPal(boardMaterialOf(c), () => drawRef.current(ctx, { w: width, h: height, dpr }));
     });
     return () => { if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; } };
   }, [canvasRef, width, height, themeV, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1067,11 +1067,11 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
-  /* #197 — the Word Search board's states must stay READABLE in BOTH
-     palettes. This is a self-test rather than a code review because the
-     failure is silent and one-sided: every colour on that board used to be a
-     literal tuned against dark, and the light theme quietly inherited a 2.21:1
-     selection that nobody would notice unless they switched themes. Bold
+  /* #197 — the Word Search board's states must stay READABLE in every
+     palette. This is a self-test rather than a code review because the
+     failure is silent: every colour on that board used to be a literal tuned
+     against dark, and the old light theme quietly inherited a 2.21:1
+     selection that nobody noticed until somebody switched themes. Bold
      letters at roughly half the cell are large text, so 3:1 is the bar; the
      values here clear it with room, and this fails the build if a retheme
      takes one back under. */
@@ -1090,14 +1090,14 @@ function runClientSelfTests(styleReady) {
     };
     const over = (fg, alpha, bg) => fg.map((v, i) => Math.round(v * alpha + bg[i] * (1 - alpha)));
     const MIN = 3; // large-text AA; the letters are 600 weight at ~half the cell
-    for (const theme of ['light', 'dark']) {
+    for (const theme of Object.keys(PALETTES)) {
       const P = PALETTES[theme];
-      const card = hex(P.card), text = hex(P.text), white = [255, 255, 255];
+      const card = hex(P.card), text = hex(P.text), ink = hex(DERIVED[theme]['accent-ink']);
       const cases = [
         ['plain', text, card],
         ['found', text, over(hex(P.emerald), 0.34, card)],
         ['hinted', text, over(hex(P.gold), 0.20, card)],
-        ['selected', white, hex(P.accent)],
+        ['selected', ink, hex(P.accent)],
       ];
       for (const [name, ink, bg] of cases) {
         const r = ratio(ink, bg);
@@ -1232,7 +1232,7 @@ function runClientSelfTests(styleReady) {
     return true;
   });
 
-  /* `C` is built from PALETTES.light's KEYS only, so `${C.well}` — or any
+  /* `C` is built from PALETTES.felt's KEYS only, so `${C.well}` — or any
      other DERIVED token (well-strong, scrim, the shadow trio, the *-hover
      pair) — interpolates the string "undefined", and the browser drops the
      whole declaration. It is the same silent-failure shape as
@@ -2679,7 +2679,7 @@ function usePointerCell(ref, handlers, { longPressMs = 450, moveTolerance = 10 }
      draw:    cuiDrawControls(ctx, controls, pressedId)
      pointer: usePointerCell(ref, cuiWrapHandlers(ctlRef, setPressed, boardHandlers))
      JSX:     <CuiTwin controls={controls} />                                 */
-const CUI_FONT = "'Space Grotesk', system-ui, sans-serif";
+const CUI_FONT = "'Plus Jakarta Sans', system-ui, sans-serif";
 const CUI_MONO = "'JetBrains Mono', monospace";
 
 function cuiInRect(r, x, y) { return x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3]; }
@@ -2742,7 +2742,7 @@ function cuiDrawButton(ctx, c, pressed) {
   ctx.textBaseline = 'middle';
   const fs = c.font || Math.min(15, Math.max(12, Math.round(h * 0.3)));
   ctx.font = '600 ' + fs + 'px ' + (c.mono ? CUI_MONO : CUI_FONT);
-  ctx.fillStyle = c.ink || (c.solid ? '#fff' : PAL.text);
+  ctx.fillStyle = c.ink || (c.solid ? PAL.accentInk : PAL.text);
   if (c.pips) {
     /* Die face: 3x3 pip grid (row-major booleans) instead of the label text.
        `c.spin` = { p, blur } turns the same grid into a throw: the face
@@ -2837,14 +2837,41 @@ function cuiDrawMeter(ctx, c) {
   ctx.stroke();
 }
 
-function cuiDrawControls(ctx, controls, pressedId) {
-  for (const c of controls) {
-    if (c.noDraw) continue; // twin-only entry (prose the draw pass renders itself)
-    if (c.kind === 'pill') cuiDrawPill(ctx, c);
-    else if (c.kind === 'meter') cuiDrawMeter(ctx, c);
-    else if (c.kind === 'label') cuiDrawLabel(ctx, c);
-    else cuiDrawButton(ctx, c, pressedId === c.id);
+/* The plate a board's cells sit on (BOARD MATERIALS): one rounded rect in the
+   material's page colour behind the cells, with a soft drop onto the felt, so
+   the gaps between cells read as the board and not as the table. Drawn inside
+   the board's withPal, so PAL.bg is the material's. `pad` grows it past the
+   cells; pass the canvas size as W/H and it is clamped to stay inside. */
+function drawBoardPlate(ctx, x, y, w, h, opts) {
+  const o = opts || {};
+  const cw = o.W || Infinity, ch = o.H || Infinity; // the canvas, in CSS px
+  const pad = o.pad || 0;
+  const x0 = Math.max(0, x - pad), y0 = Math.max(0, y - pad);
+  const x1 = Math.min(cw, x + w + pad), y1 = Math.min(ch, y + h + pad);
+  ctx.save();
+  klRR(ctx, x0, y0, x1 - x0, y1 - y0, o.radius != null ? o.radius : 12);
+  if (o.shadow !== false) {
+    ctx.shadowColor = 'rgba(0,0,0,0.30)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 3;
   }
+  ctx.fillStyle = o.fill || PAL.bg;
+  ctx.fill();
+  ctx.restore();
+}
+
+// Canvas chrome is felt even on a paper or screen board: a control sits on
+// the table, it is not printed on the board (see BOARD MATERIALS).
+function cuiDrawControls(ctx, controls, pressedId) {
+  withPal('felt', () => {
+    for (const c of controls) {
+      if (c.noDraw) continue; // twin-only entry (prose the draw pass renders itself)
+      if (c.kind === 'pill') cuiDrawPill(ctx, c);
+      else if (c.kind === 'meter') cuiDrawMeter(ctx, c);
+      else if (c.kind === 'label') cuiDrawLabel(ctx, c);
+      else cuiDrawButton(ctx, c, pressedId === c.id);
+    }
+  });
 }
 
 // Wrapped prose on canvas (clue lines): naive word wrap via measureText.

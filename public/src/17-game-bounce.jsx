@@ -577,7 +577,7 @@ function BounceGame({ onWin, onLose, onStepChange, resetKey, playMode, band, off
 
     if (startedRef.current && !launchedRef.current && !doneRef.current) {
       ctx.fillStyle = PAL.text;
-      ctx.font = '600 14px "Space Grotesk", system-ui, sans-serif';
+      ctx.font = '600 14px "Plus Jakarta Sans", system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Tap or press Space to launch', BOUNCE_W / 2, BOUNCE_H / 2);
     }
@@ -612,7 +612,7 @@ function BounceGame({ onWin, onLose, onStepChange, resetKey, playMode, band, off
         guard += 1;
         if (doneRef.current) break;
       }
-      draw();
+      withPal(boardMaterialOf(canvasRef.current), draw); // the court is a screen
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
@@ -685,10 +685,10 @@ function BounceGame({ onWin, onLose, onStepChange, resetKey, playMode, band, off
             return out;
           }} />
 
-          <div className="bounce-board-wrap">
+          <div className="bounce-board-wrap" data-board="screen">
             <canvas
               ref={canvasRef}
-              className="bounce-canvas"
+              className="bounce-canvas board-plate"
               onMouseMove={handleMouseMove}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}

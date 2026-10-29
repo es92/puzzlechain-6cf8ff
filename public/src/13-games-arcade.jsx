@@ -171,7 +171,7 @@ function SnakeCanvas({ n, stRef, tick, skin, ariaLabel }) {
   });
   return (
     <div className="snake-canvas-fill" ref={boxRef}>
-      <canvas ref={canvasRef} className="snake-canvas board-canvas" role="img" aria-label={ariaLabel} />
+      <canvas ref={canvasRef} className="snake-canvas board-canvas board-plate" data-board="paper" role="img" aria-label={ariaLabel} />
     </div>
   );
 }
@@ -489,7 +489,8 @@ function BbGridCanvas({ grid, preview }) {
     <div className="snake-canvas-fill" ref={boxRef}>
       <canvas
         ref={canvasRef}
-        className="bb-canvas board-canvas"
+        className="bb-canvas board-canvas board-plate"
+        data-board="screen"
         role="img"
         aria-label={`Block Fit board — ${grid.filter(Boolean).length} of 64 cells filled`}
       />
@@ -678,7 +679,8 @@ function BlockBlastBoard({ onStepChange, resetKey, onEnd, playMode, band, offset
       <div className="bb-tray" ref={trayBoxRef}>
         <canvas
           ref={trayCanvasRef}
-          className="bb-tray-canvas board-canvas"
+          className="bb-tray-canvas board-canvas board-plate"
+        data-board="screen"
           role="img"
           aria-label={`Piece tray — ${tray.filter(Boolean).length} of 3 pieces left`}
           onPointerDown={(e) => {
@@ -1210,7 +1212,8 @@ function DiamondRushGame({ onWin, onLose, onStepChange, resetKey, game, onBack, 
         <div className="dr-grid" ref={drBoxRef}>
           <canvas
             ref={drCanvasRef}
-            className="dr-canvas board-canvas"
+            className="dr-canvas board-canvas board-plate"
+        data-board="screen"
             role="grid"
             aria-label={`Diamond Rush board — score ${score} of ${TARGET}, ${moves} moves left`}
           />

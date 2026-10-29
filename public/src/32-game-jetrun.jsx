@@ -524,8 +524,8 @@ function JetRunGame({ onWin, onLose, onStepChange, resetKey, game, onBack, menuC
 
     const draw = (s, W, H) => {
       const jetY = H - jetYOff;
-      // Sky follows the theme (PAL, resolved every frame so a Light↔Dark flip
-      // recolours mid-run). The jet, pylons, clouds and stars below stay
+      // The sky reads PAL, resolved every frame, so it takes the board's
+      // material (a screen). The jet, pylons, clouds and stars below stay
       // hardcoded — intrinsic arcade art, like the 2048 tiles.
       ctx.clearRect(0, 0, W, H);
       const sky = ctx.createLinearGradient(0, 0, 0, H);
@@ -626,7 +626,7 @@ function JetRunGame({ onWin, onLose, onStepChange, resetKey, game, onBack, menuC
       lastTsRef.current = ts;
       if (dt > 0.05) dt = 0.05;
       step(s, dt, W, H);
-      draw(s, W, H);
+      withPal(boardMaterialOf(canvas), () => draw(s, W, H)); // the sky is a screen
       // A bounded course (daily / story rung) that runs its clock out is
       // CLEARED only if it hit the course's target — the same rule Hash Rush
       // runs, and for a story rung it is the difference between ticking the
@@ -676,7 +676,7 @@ function JetRunGame({ onWin, onLose, onStepChange, resetKey, game, onBack, menuC
             ? { l: 'Left', v: `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, '0')}` }
             : { l: 'Combo', v: '×' + mult },
         ]} />
-        <div className="jr-wrap" ref={wrapRef} data-jr-phase={phase} data-jr-target={target}>
+        <div className="jr-wrap" ref={wrapRef} data-jr-phase={phase} data-jr-target={target} data-board="screen">
           <canvas ref={canvasRef} className="jr-canvas" />
           {phase === 'idle' && (
             <div className="jr-overlay">

@@ -1,26 +1,31 @@
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Fraunces:ital,opsz,wght@0,9..144,500..900;1,9..144,500..900&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-/* ---- Theme tokens ----
-   Light is the :root default; dark is one attribute flip away. The inline
-   boot script in index.html sets data-theme before first paint, so a
-   dark-mode player never sees an ivory flash. */
+/* ---- Palette tokens ----
+   One palette, felt (00-palette.jsx). There is no light or dark theme to
+   switch between, so the tokens sit on :root and nothing ever flips them. */
 :root {
-${paletteVars('light')}
-}
-:root[data-theme="dark"] {
-${paletteVars('dark')}
+${paletteVars('felt')}
 }
 
-/* The hosted native kit's accent follows ours in both themes, so kit
-   switches, action sheets, toasts and pull-to-refresh match the teal.
-   Overridden here, never by forking kit CSS. */
-:root, :root[data-theme="dark"] {
+/* Board materials (00-palette.jsx, BOARD MATERIALS in 02-prefs-theme.jsx):
+   a board is an object on the felt, so its subtree gets its own tokens. */
+[data-board="paper"] {
+${paletteVars('paper')}
+  color: var(--c-text);
+}
+[data-board="screen"] {
+${paletteVars('screen')}
+  color: var(--c-text);
+}
+
+/* The hosted native kit's accent follows ours, so kit switches, action
+   sheets, toasts and pull-to-refresh are brass on felt too. Overridden here,
+   never by forking kit CSS. */
+:root {
   --un-accent: var(--c-accent);
-  --un-accent-contrast: #fff;
-  /* The toast surface is dark in both themes, so its action label is a
-     light teal in both. */
-  --un-toast-action: #5EEAD4;
+  --un-accent-contrast: var(--c-accent-ink);
+  --un-toast-action: ${PALETTES.felt.gold};
 }
 
 /* ---- Safe-area insets (platform-forwarded) ----
@@ -54,7 +59,7 @@ ${paletteVars('dark')}
 html { background: ${C.bg}; }
 
 body {
-  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   background: ${C.bg};
   color: ${C.text};
   -webkit-font-smoothing: antialiased;
@@ -270,7 +275,7 @@ body {
   height: 1.35rem;
   border-radius: 50%;
   background: ${C.accent};
-  color: white;
+  color: var(--c-accent-ink);
   font-size: 0.8rem;
   font-weight: 700;
   display: flex;
@@ -720,7 +725,10 @@ ${emitTapHighlightRules()}
   transition: border-color 0.12s ease;
 }
 .back-btn:hover { border-color: ${C.accent}; }
-.game-title { font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+.game-title {
+  font-family: 'DM Serif Display', Georgia, serif; font-size: 1.5rem; font-weight: 400; line-height: 1.1;
+  display: flex; align-items: center; gap: 0.5rem;
+}
 
 
 /* ---- Sudoku ---- */
@@ -881,13 +889,13 @@ ${emitTapHighlightRules()}
 .primary-btn {
   width: 100%;
   background: ${C.accent};
-  color: white;
+  color: var(--c-accent-ink);
   border: none;
-  border-radius: 12px;
+  border-radius: 999px;
   padding: 0.8rem;
   font-family: inherit;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
   transition: background 0.12s ease;
 }
@@ -918,7 +926,7 @@ ${emitTapHighlightRules()}
 .play-again-btn {
   margin-bottom: 0.6rem;
   background: ${C.accent};
-  color: white;
+  color: var(--c-accent-ink);
   border: 1px solid ${ca('accent', '99')};
   outline: 2px solid ${ca('accent', '7a')};
   outline-offset: 2px;
@@ -1059,9 +1067,9 @@ ${emitTapHighlightRules()}
 }
 .pregame-band.wide { font-family: inherit; font-size: 0.8rem; }
 .pregame-band.on {
-  border-color: var(--accent, ${C.accent});
-  background: ${ca('accent', '14')};
-  color: var(--accent, ${C.accent});
+  border-color: ${C.accent};
+  background: ${ca('accent', '1f')};
+  color: ${C.accent};
 }
 .pregame-band.done { color: ${C.emerald}; border-color: ${ca('emerald', '55')}; }
 .pregame-band.locked { opacity: 0.4; cursor: not-allowed; }
@@ -1242,7 +1250,7 @@ ${emitTapHighlightRules()}
   transition: border-color 0.12s, color 0.12s;
 }
 .lb-scope-tab:not(.active):hover { border-color: ${C.accent}; color: ${C.text}; }
-.lb-scope-tab.active { background: ${C.accent}; border-color: ${C.accent}; color: #fff; }
+.lb-scope-tab.active { background: ${C.text}; border-color: ${C.text}; color: var(--c-accent-ink); }
 .lboard.ladder { max-width: 640px; margin: 0.5rem auto; }
 /* Ladder rows carry five cells (rank, name, streak, elo, delta) — the base
    .lrow grid is four columns, so widen it here. */
@@ -1387,7 +1395,7 @@ ${emitTapHighlightRules()}
   color: ${C.text};
   transition: border-color 0.12s, background 0.12s;
 }
-.lobby-tab.active { background: ${C.accent}; border-color: ${C.accent}; color: #fff; }
+.lobby-tab.active { background: ${C.text}; border-color: ${C.text}; color: var(--c-accent-ink); }
 .lobby-tab:not(.active):hover { border-color: ${C.accent}; }
 
 @media (max-width: 480px) {
@@ -1424,7 +1432,7 @@ ${emitTapHighlightRules()}
 .ms-cashout-btn {
   width: 100%;
   background: ${C.emerald};
-  color: white;
+  color: var(--c-accent-ink);
   border: none;
   border-radius: 12px;
   padding: 0.8rem;
@@ -2053,7 +2061,7 @@ ${emitTapHighlightRules()}
   cursor: pointer;
   transition: opacity 0.12s;
 }
-.t2048-keep-btn   { background: ${C.accent}; color: #fff; border: none; }
+.t2048-keep-btn   { background: ${C.accent}; color: var(--c-accent-ink); border: none; }
 .t2048-keep-btn:hover   { opacity: 0.88; }
 .t2048-finish-btn { background: ${C.card}; color: ${C.text}; border: 1px solid ${C.border}; }
 .t2048-finish-btn:hover { border-color: ${C.accent}; }
@@ -2368,7 +2376,7 @@ ${emitTapHighlightRules()}
   width: 100%;
   margin-top: 1rem;
   background: ${C.accent};
-  color: #fff;
+  color: var(--c-accent-ink);
   border: none;
   border-radius: 12px;
   padding: 0.8rem;
@@ -2407,7 +2415,7 @@ ${emitTapHighlightRules()}
 .tm-next-btn {
   flex: 2;
   background: ${C.emerald};
-  color: #fff;
+  color: var(--c-accent-ink);
   border: none;
   border-radius: 10px;
   padding: 0.7rem;
@@ -2538,8 +2546,9 @@ ${emitTapHighlightRules()}
 .cg-title {
   flex: 1;
   min-width: 0;
-  font-weight: 600;
-  font-size: clamp(0.95rem, 3.5vw, 1.15rem);
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.05rem, 4.2vw, 1.35rem);
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -2629,7 +2638,7 @@ ${emitTapHighlightRules()}
   font-size: 0.8rem;
   cursor: pointer;
 }
-.cg-sheet-tab.active { background: ${C.accent}; border-color: ${C.accent}; color: #fff; }
+.cg-sheet-tab.active { background: ${C.text}; border-color: ${C.text}; color: var(--c-accent-ink); }
 .cg-sheet h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.6rem; }
 .cg-setting-row {
   display: flex;
@@ -2657,9 +2666,9 @@ ${emitTapHighlightRules()}
   padding: 3px 4px; border-radius: 4px; min-width: 1.05rem; text-align: center;
   background: ${C.border}; color: ${C.text};
 }
-.cw-legend-key.on-green { background: ${C.emerald}; color: #fff; }
-.cw-legend-key.on-yellow { background: ${C.gold}; color: #fff; }
-.cw-legend-key.on-gray { background: ${C.rose}; color: #fff; }
+.cw-legend-key.on-green { background: ${C.emerald}; color: var(--c-accent-ink); }
+.cw-legend-key.on-yellow { background: ${C.gold}; color: var(--c-accent-ink); }
+.cw-legend-key.on-gray { background: ${C.rose}; color: var(--c-accent-ink); }
 /* The input the device keyboard types into. Focusable and off-screen rather
    than display:none, because a hidden element cannot take focus and so cannot
    open a keyboard at all. */
@@ -3164,7 +3173,7 @@ ${emitTapHighlightRules()}
   font-weight: 600;
   cursor: pointer;
   transition: color 0.12s ease;
-  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 .kt-tab.active { color: ${C.accent}; border-top: 2px solid ${C.accent}; margin-top: -1px; }
 /* ---- Diamond Rush ---- */
@@ -3306,7 +3315,7 @@ ${emitTapHighlightRules()}
 .tm-duel-tier-card .tm-duel-payout { flex: 1; font-size: 0.82rem; color: ${C.muted}; }
 .tm-duel-tier-card .tm-duel-payout strong { color: ${C.emerald}; }
 .tm-duel-find-btn {
-  background: ${C.accent}; color: #fff; border: none; border-radius: 8px;
+  background: ${C.accent}; color: var(--c-accent-ink); border: none; border-radius: 8px;
   padding: 0.45rem 0.85rem; font-family: inherit; font-size: 0.83rem;
   font-weight: 600; cursor: pointer; transition: background 0.12s;
 }
@@ -3354,7 +3363,7 @@ ${emitTapHighlightRules()}
 .tm-task-footer { display: flex; align-items: center; justify-content: space-between; }
 .tm-task-progress-lbl { font-size: 0.76rem; color: ${C.muted}; font-family: 'JetBrains Mono', monospace; }
 .tm-task-claim-btn {
-  background: ${C.emerald}; color: #fff; border: none; border-radius: 7px;
+  background: ${C.emerald}; color: var(--c-accent-ink); border: none; border-radius: 7px;
   padding: 0.3rem 0.75rem; font-family: inherit; font-size: 0.8rem;
   font-weight: 600; cursor: pointer; transition: background 0.12s;
 }
@@ -3417,7 +3426,7 @@ ${emitTapHighlightRules()}
 /* PHASE 2 — Gomoku ghost-confirm. 15x15 in 380px is ~24px per intersection and
    a mis-tap used to place a stone permanently. The ghost stone itself is drawn
    on the canvas now; the confirm bar stays DOM. */
-.brd-confirm-bar button.go { background: ${C.accent}; border-color: ${C.accent}; color: #fff; }
+.brd-confirm-bar button.go { background: ${C.accent}; border-color: ${C.accent}; color: var(--c-accent-ink); }
 /* PHASE 7 — "Your rooms": a room you hosted was invisible once you left it. */
 .brd-myrooms { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.9rem; }
 .brd-myrooms-label {
@@ -3435,7 +3444,7 @@ ${emitTapHighlightRules()}
 .brd-myroom-sub.yourturn { color: ${C.emerald}; font-weight: 600; }
 .brd-myroom button {
   min-height: 40px; padding: 0 0.85rem; border-radius: 10px; flex: 0 0 auto;
-  background: ${C.accent}; border: none; color: #fff;
+  background: ${C.accent}; border: none; color: var(--c-accent-ink);
   font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
 }
 .brd-myroom button.ghost { background: transparent; color: ${C.muted}; border: 1px solid ${C.border}; }
@@ -3581,7 +3590,7 @@ ${emitTapHighlightRules()}
 .gm-play-btn {
   width: 100%; margin-top: 1rem; padding: 0.8rem; border: none; border-radius: 12px;
   background: var(--accent, ${C.accent}); color: #fff; font-weight: 700; font-size: 1rem;
-  cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .gm-play-btn:disabled { opacity: 0.4; cursor: default; }
 .gm-link-btn {
@@ -3601,7 +3610,7 @@ ${emitTapHighlightRules()}
 .snake-lb { display: flex; flex-direction: column; gap: 0.2rem; }
 
 /* ---- Hash Rush ---- */
-.hr-wrap { position: relative; width: 100%; height: 62vh; max-height: 560px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #0c1020, #131a30); border: 1px solid ${C.border}; }
+.hr-wrap { position: relative; width: 100%; height: 62vh; max-height: 560px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, ${C.surface}, ${C.card}); border: 1px solid ${C.border}; }
 .hr-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .hr-boost-badge { position: absolute; top: 0.6rem; left: 50%; transform: translateX(-50%); background: rgba(34,211,238,0.18); border: 1px solid #22d3ee; color: #67e8f9; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
 .hr-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; background: rgba(8,10,18,0.6); text-align: center; padding: 1rem; }
@@ -3751,7 +3760,7 @@ ${emitTapHighlightRules()}
 /* The note's way in, where the bridge has a sign-in sheet (canAskForAccount). */
 .guest-signin {
   display: block; margin-top: 10px; padding: 8px 16px; border-radius: 999px;
-  border: 1px solid ${C.accent}; background: ${C.accent}; color: white;
+  border: 1px solid ${C.accent}; background: ${C.accent}; color: var(--c-accent-ink);
   font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
 }
 .guest-signin:active, .guest-signin[data-pressed] { opacity: 0.75; }
@@ -3765,7 +3774,7 @@ ${emitTapHighlightRules()}
 .wn-panel { height: min(64vh, 560px); }
 .wn-list { gap: 16px; }
 .wn-week-title {
-  font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 14.5px;
+  font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 16px;
   border-bottom: 1px solid ${C.border}; padding-bottom: 4px; margin-bottom: 6px;
 }
 .wn-items { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 5px; }
@@ -3832,7 +3841,7 @@ ${emitTapHighlightRules()}
 }
 .chat-input:focus { border-color: ${C.accent}; }
 .chat-send {
-  background: ${C.accent}; border: none; color: white; border-radius: 10px;
+  background: ${C.accent}; border: none; color: var(--c-accent-ink); border-radius: 10px;
   padding: 0 18px; font-family: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer;
 }
 .chat-send:disabled { opacity: 0.4; cursor: default; }
@@ -3850,14 +3859,16 @@ ${emitTapHighlightRules()}
    wins / medals. Pure restyle: later rules of equal-or-greater
    specificity re-skin the same markup — no layout changes.
    ============================================================ */
-.serif { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; }
+.serif { font-family: 'DM Serif Display', Georgia, 'Times New Roman', serif; font-weight: 400; }
 
-/* Serif display type on the shell's headline moments. */
+/* Serif display type on the shell's headline moments — the lobby's DM Serif
+   Display, which ships one weight (400): with font-synthesis off, a bold
+   request would fall back to Georgia rather than thicken it. */
 .nav-brand, .lobby-head h1, .pregame-card h2, .win-card h2, .locked-card h2, .howto-head h3, .chat-title {
-  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  font-family: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
   letter-spacing: 0;
 }
-.nav-brand { font-weight: 700; }
 .nav-brand .logo { color: ${C.gold}; }
 
 /* Brass for streaks (spec: brass = streaks/wins/medals; green stays a
@@ -3960,22 +3971,16 @@ ${emitTapHighlightRules()}
 /* GotD description stays serif but upright — the masthead tagline is the
    home screen's single italic moment. */
 
-/* Per-game chrome picks up the game's accent (set as --accent inline on
-   the lobby card, hero, and modal): accent Play buttons + tag pills. */
+/* Play is brass on every pre-game screen, the lobby's Play: the game's own
+   colour (set as --accent inline) keeps only the card's top rule. */
 .pregame-card .pregame-play {
-  background: var(--accent, ${C.accent});
+  background: ${C.accent}; color: var(--c-accent-ink);
 }
-.pregame-card .pregame-play:hover {
-  background: var(--accent, ${C.accent}); filter: brightness(0.88);
-}
-/* Dark look: the raw game colour is tuned for the light card, where its
-   white label falls below AA (sky measured 3.81:1 — review round 1). The
-   deepened fill (--accent-deep, set inline by GotdHero) restores 4.5:1.
-   Scoped to the hero button; the pre-game screen is untouched. */
+.pregame-card .pregame-play:hover { background: var(--c-accent-hover); }
 .pregame-card { border-top: 3px solid var(--accent, ${C.accent}); }
 
-/* Buttons: crisp editorial edges. */
-.primary-btn { box-shadow: 0 1px 2px var(--c-shadow-md); }
+/* Buttons sit on the felt like the lobby's: a pill with a short drop. */
+.primary-btn { box-shadow: 0 2px 0 rgba(0,0,0,0.22), 0 8px 18px var(--c-shadow-sm); }
 
 /* Wins are brass moments. */
 .win-card .trophy { filter: none; }
@@ -4131,16 +4136,24 @@ ${emitTapHighlightRules()}
   .cg-stage .mnc-board { max-width: min(680px, var(--cg-board)) !important; }
   .cg-stage .cnl-board-wrap { max-width: min(680px, var(--cg-board)) !important; }
 }
+/* A board that fills its own canvas gets its plate from CSS: the material's
+   surface under the cells and a drop onto the felt (BOARD MATERIALS). Boards
+   that share a canvas with their HUD draw theirs (drawBoardPlate). */
+[data-board] canvas.board-plate, canvas.board-plate[data-board] {
+  background: var(--c-surface); border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.32);
+}
+
 /* ============================================================
-   The flip-deck lobby — felt, in BOTH themes
+   The flip-deck lobby — the card table
    ============================================================
    The lobby's home is a card table: deep green felt, brass accents, cards in
-   cream. Like a game board it does not follow light/dark, so its colours are
-   fixed here (as .fd-lobby / .fd-ov custom properties) rather than read
-   from C. Every screen past the lobby keeps the theme. Fonts: DM Serif Display
-   for headings and card names, Plus Jakarta Sans for the rest. */
-html.felt-page, html.felt-page body { background: #0F4A36; }
-html.felt-page body {
+   cream. Its colours are fixed here (as .fd-lobby / .fd-ov custom properties)
+   and they are the same values as the app's palette (PALETTES.felt), which
+   every other screen reads through C. Fonts: DM Serif Display for headings
+   and card names, Plus Jakarta Sans for the rest. */
+html, body { background-color: #0F4A36; }
+body {
   background-image:
     radial-gradient(ellipse 80% 520px at 50% 0, #17644A, transparent),
     radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1.4px),

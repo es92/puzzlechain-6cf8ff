@@ -635,22 +635,25 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
       // Start overlay
       if (!startedRef.current && !doneRef.current) {
         ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, ZUMA_W, ZUMA_H);
-        ctx.font = 'bold 16px "Space Grotesk",system-ui,sans-serif';
+        ctx.font = 'bold 16px "Plus Jakarta Sans",system-ui,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillStyle = '#e2e8f0'; ctx.fillText('Tap to aim, tap again to fire', ZUMA_W/2, ZUMA_H/2);
-        ctx.font = '13px "Space Grotesk",system-ui,sans-serif';
+        ctx.font = '13px "Plus Jakarta Sans",system-ui,sans-serif';
         ctx.fillStyle = '#64748b'; ctx.fillText('The dotted line shows where it lands', ZUMA_W/2, ZUMA_H/2+24);
       }
       ctx.restore();
     }
 
-    if (!loopRunning) { drawFrame(); return; }
+    // The track is a screen on the felt (BOARD MATERIALS): every frame draws
+    // with that material's palette.
+    const paintFrame = () => withPal(boardMaterialOf(canvas), drawFrame);
+    if (!loopRunning) { paintFrame(); return; }
 
     let alive = true, lastTs = null;
     const loop = (ts) => {
       if (!alive) return;
       rafRef.current = requestAnimationFrame(loop);
-      if (!lastTs) { lastTs = ts; drawFrame(); return; }
+      if (!lastTs) { lastTs = ts; paintFrame(); return; }
       const dt = Math.min((ts - lastTs) / 1000, 0.05);
       lastTs = ts;
 
@@ -663,18 +666,18 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
 
       // Game over: front ball crossed the skull
       if (chain.length > 0 && chain[0].dist >= pd.totalLen) {
-        triggerEnd(false); drawFrame(); return;
+        triggerEnd(false); paintFrame(); return;
       }
 
       // Level cleared: chain empty and no shot in flight
       if (chain.length === 0 && !shotRef.current) {
         scoreRef.current += 500 * levelRef.current;
         setScore(scoreRef.current);
-        if (levelRef.current >= LEVELS.length) { triggerEnd(true); drawFrame(); return; }
+        if (levelRef.current >= LEVELS.length) { triggerEnd(true); paintFrame(); return; }
         levelRef.current++;
         setLevel(levelRef.current);
         initLevel(levelRef.current);
-        drawFrame(); return;
+        paintFrame(); return;
       }
 
       // Update power-ups and handle frog collision
@@ -785,7 +788,7 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
           }
         }
       }
-      drawFrame();
+      paintFrame();
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => { alive = false; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
@@ -940,7 +943,8 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
         React.createElement('div', { className: 'zuma-wrap' },
           React.createElement('canvas', {
             ref: canvasRef,
-            className: 'zuma-canvas',
+            className: 'zuma-canvas board-plate',
+            'data-board': 'screen',
             onMouseMove: e => { updateAim(e); aimedRef.current = true; if (!aimed) setAimed(true); },
             onClick: e => { updateAim(e); shoot(); },
           })
@@ -1078,7 +1082,8 @@ function M3BoardCanvas({ tiles, bar, done, onTile }) {
     <div className="m3-grid" ref={boxRef}>
       <canvas
         ref={canvasRef}
-        className="m3-canvas board-canvas"
+        className="m3-canvas board-canvas board-plate"
+        data-board="paper"
         role="grid"
         aria-label={`Match 3 board — ${tiles.filter((t) => !t.removed).length} tiles left, ${bar.length} in tray`}
       />

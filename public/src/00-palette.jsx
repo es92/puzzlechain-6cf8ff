@@ -1,47 +1,64 @@
 const { useState, useEffect, useRef } = React;
 
 /* ============================================================
-   Design system — color palette
-   "The Daily Page, Warmed" (Game Corner spec, Appendix A): an
-   editorial daily-newspaper look. Ivory paper, ink-navy text, warm
-   hairlines, white card surfaces, and brass reserved for streaks /
-   wins / medals. Same token names as before so every ${C.*} in the
-   stylesheet re-themes in place.
+   Design system — color palette: the card table
+   One palette, felt. The flip-deck lobby set the look (deep green felt,
+   cream ink, brass for actions and wins, darker panels laid on the felt),
+   and every screen past it now wears the same cloth: there is no light or
+   dark theme any more. The token names are the ones the stylesheet has
+   always used, so every ${C.*} re-colours in place.
    ------------------------------------------------------------
-   THEMING (light/dark/system): the palette is no longer baked into
-   the stylesheet as hex. `PALETTES` holds the raw values for both
-   themes; they are emitted as CSS custom properties on :root (light)
-   and :root[data-theme="dark"] (dark) by `paletteVars()` below, and
-   `C` interpolates `var(--c-*)` references — so all ~900 ${C.*} sites
-   in `css` re-theme at runtime with no rebuild. Two escape hatches:
+   The palette is not baked into the stylesheet as hex: `PALETTES.felt` holds
+   the raw values, `paletteVars()` emits them as CSS custom properties on
+   :root, and `C` interpolates `var(--c-*)` references. Two escape hatches:
    - `ca('gold','1f')` for the hex-alpha idiom (`var()` can't be
      string-concatenated with an alpha byte), and
-   - `PAL.*`, a live plain object mirroring the RESOLVED palette, for
-     the handful of <canvas> sites that need a real colour value.
+   - `PAL.*`, a plain object holding the same values, for the handful of
+     <canvas> sites that need a real colour value.
+   Felt is a DARK scheme: text is light, surfaces are dark, and a solid fill
+   in any accent hue carries dark ink (`var(--c-accent-ink)`), never white.
    ============================================================ */
 const PALETTES = {
-  light: {
-    bg:      '#FAF6EE', // ivory paper
-    surface: '#F3EDDF', // deeper paper — nav, wells, sheets
-    card:    '#FFFFFF', // card-weight white surfaces
-    border:  '#E7DFCC', // warm hairline
-    accent:  '#0B7A70', // vivid teal — shell links/buttons/tabs (5.2:1 with white text)
-    gold:    '#C9A227', // brass — reserved for streaks, wins, medals
-    emerald: '#1E8F63', // deep green (success, live states)
-    violet:  '#7B5CD6',
-    rose:    '#CD4B3A', // warm coral-red (errors, danger)
-    text:    '#1F2B47', // ink navy
-    muted:   '#5E6A87', // muted ink
-    dim:     '#A9A38F', // faded newsprint — faint text, dashed rules
+  felt: {
+    bg:      '#0F4A36', // the felt
+    surface: '#0A3326', // deep felt — nav, sheets, the page under a card
+    card:    '#0C3D2C', // a panel laid on the felt (the lobby's rgba(0,0,0,0.2) tiles)
+    border:  '#2A5C4A', // hairline
+    accent:  '#D9B35E', // brass — actions, links, the selected thing
+    gold:    '#E8C677', // bright brass — streaks, wins, medals, live numbers
+    emerald: '#7DD3A0', // mint (success, live states)
+    violet:  '#B9A6F5',
+    rose:    '#F48C78', // coral (errors, danger)
+    text:    '#F3EBD8', // cream ink
+    muted:   '#A8C3B4', // sage
+    dim:     '#4D7A67', // faint text, dashed rules
   },
-  // The deep neutral-dark scheme this app shipped with before the
-  // "Daily Page, Warmed" retheme — designed against this same stylesheet.
-  dark: {
+  /* A board is an object ON the felt, like a lobby card: it keeps a material
+     of its own instead of turning green. These two are the light and dark
+     themes the app shipped before felt, kept verbatim because every board was
+     tuned against them (contrast self-tests included). A board opts in with
+     data-board="paper|screen" on its container — see BOARD MATERIALS in
+     02-prefs-theme.jsx. Same keys as felt, in the same order. */
+  paper: {
+    bg:      '#FAF6EE', // ivory paper
+    surface: '#F3EDDF', // deeper paper
+    card:    '#FFFFFF',
+    border:  '#E7DFCC',
+    accent:  '#0B7A70', // teal ink
+    gold:    '#C9A227',
+    emerald: '#1E8F63',
+    violet:  '#7B5CD6',
+    rose:    '#CD4B3A',
+    text:    '#1F2B47', // ink navy
+    muted:   '#5E6A87',
+    dim:     '#A9A38F',
+  },
+  screen: {
     bg:      '#0A0D14',
     surface: '#12161F',
     card:    '#181D29',
     border:  '#2A3342',
-    accent:  '#0E8C80', // teal, balanced for white text on it AND teal text on the dark page
+    accent:  '#0E8C80',
     gold:    '#FBBF24',
     emerald: '#34D399',
     violet:  '#A78BFA',
@@ -53,10 +70,21 @@ const PALETTES = {
 };
 
 /* Derived, semantically-named tokens: the shadow/scrim/well/hover values
-   that used to be hardcoded warm-brown rgba() literals (invisible on a dark
-   page) or hand-darkened hues. One knob per theme instead of ~30 literals. */
+   and the ink that sits on a solid accent fill. */
 const DERIVED = {
-  light: {
+  felt: {
+    'shadow-sm':     'rgba(0,0,0,0.22)',
+    'shadow-md':     'rgba(0,0,0,0.30)',
+    'shadow-lg':     'rgba(0,0,0,0.45)',
+    'scrim':         'rgba(3,20,14,0.68)',
+    'well':          'rgba(0,0,0,0.16)',
+    'well-strong':   'rgba(0,0,0,0.26)',
+    'accent-hover':  '#E8C677',
+    'emerald-hover': '#9BE3B6',
+    'gold-hover':    '#F0D490',
+    'accent-ink':    '#2A1E05', // text on a brass / mint / coral / lavender fill
+  },
+  paper: {
     'shadow-sm':     'rgba(63,51,24,0.06)',
     'shadow-md':     'rgba(63,51,24,0.14)',
     'shadow-lg':     'rgba(63,51,24,0.22)',
@@ -66,8 +94,9 @@ const DERIVED = {
     'accent-hover':  '#09635B',
     'emerald-hover': '#059669',
     'gold-hover':    '#A8871C',
+    'accent-ink':    '#FFFFFF',
   },
-  dark: {
+  screen: {
     'shadow-sm':     'rgba(0,0,0,0.45)',
     'shadow-md':     'rgba(0,0,0,0.5)',
     'shadow-lg':     'rgba(0,0,0,0.6)',
@@ -77,19 +106,21 @@ const DERIVED = {
     'accent-hover':  '#12A596',
     'emerald-hover': '#6EE7B7',
     'gold-hover':    '#FCD34D',
+    'accent-ink':    '#FFFFFF',
   },
 };
 
 /* Every ${C.x} in `css` (and in inline style objects) resolves through a
-   custom property, so one attribute flip on <html> re-themes everything. */
-const C = Object.keys(PALETTES.light).reduce((o, k) => {
+   custom property. */
+const C = Object.keys(PALETTES.felt).reduce((o, k) => {
   o[k] = 'var(--c-' + k + ')';
   return o;
 }, {});
 
-/* Live mirror of the RESOLVED palette, kept in sync by applyTheme(). Canvas
-   games read real hex from here — ctx.fillStyle = 'var(--c-bg)' draws nothing. */
-const PAL = Object.assign({}, PALETTES.light);
+/* The palette as real hex, for canvas games — ctx.fillStyle = 'var(--c-bg)'
+   draws nothing. `accentInk` rides along (the ink on a solid accent fill).
+   While a board draws, withPal() swaps in that board's material. */
+const PAL = Object.assign({}, PALETTES.felt, { accentInk: DERIVED.felt['accent-ink'] });
 
 function hexToRgbTriplet(hex) {
   const h = hex.replace('#', '');
@@ -110,7 +141,7 @@ function ca(token, hh) {
   return 'rgb(var(--c-' + token + '-rgb) / ' + pct + '%)';
 }
 
-/* Emit one theme's tokens as a custom-property block body. */
+/* Emit the palette's tokens as a custom-property block body. */
 function paletteVars(theme) {
   const p = PALETTES[theme];
   const d = DERIVED[theme];
@@ -120,7 +151,7 @@ function paletteVars(theme) {
     lines.push('  --c-' + k + '-rgb: ' + hexToRgbTriplet(p[k]) + ';');
   }
   for (const k of Object.keys(d)) lines.push('  --c-' + k + ': ' + d[k] + ';');
-  lines.push('  color-scheme: ' + theme + ';');
+  lines.push('  color-scheme: ' + (theme === 'paper' ? 'light' : 'dark') + ';');
   return lines.join('\n');
 }
 

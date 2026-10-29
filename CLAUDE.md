@@ -357,52 +357,74 @@ loading mechanism is unusual on purpose.
   object and a single global `css` template literal injected via
   `<style>{css}</style>`. Add component styles to `css` and reuse `C`
   tokens (e.g. `${C.accent}`); don't introduce a second stylesheet.
-  Fonts are Space Grotesk (body) + JetBrains Mono (`.mono`); the flip-deck
-  lobby uses DM Serif Display (headings, card names) + Plus Jakarta Sans.
-- **Theming — `C` is CSS custom properties, not hex.** `PALETTES.light`
-  / `PALETTES.dark` hold the raw values (plus `DERIVED` for
-  shadow/scrim/well/hover tokens); `paletteVars()` emits them into
-  `:root` and `:root[data-theme="dark"]` at the top of `css`, and every
-  `C.x` is the string `var(--c-x)`. Consequences when writing styles:
-  - Keep using `${C.accent}` — it re-themes for free, in `css` and in
-    inline `style={{}}` objects alike.
+  Fonts are Plus Jakarta Sans (body), DM Serif Display (headlines: the game
+  title, pre-game / result / locked headings, card names) and JetBrains Mono
+  (`.mono`, live numbers) — the lobby's pair, everywhere.
+- **One palette: felt.** There is no light or dark theme. `PALETTES.felt`
+  (`00-palette.jsx`) is the card table — deep green felt, cream ink, brass for
+  actions and wins, darker panels laid on it — and every screen wears it;
+  `paletteVars('felt')` emits it on `:root`, and every `C.x` is the string
+  `var(--c-x)`. The old System / Light / Dark control, its
+  `puzzlechain_theme` key (no longer read) and the `?theme=` link (ignored)
+  are gone; `<html data-theme="felt">` is set by `applyTheme()` and by
+  `index.html`'s pre-paint line, whose boot shell duplicates the felt hex on
+  purpose (it must work when `app.js` does not). Consequences when writing
+  styles:
+  - Keep using `${C.accent}` — in `css` and in inline `style={{}}` objects.
+  - **Felt is a dark scheme, and its accent is light**: a solid fill in any
+    accent hue (brass, mint, coral, lavender) carries dark ink,
+    `var(--c-accent-ink)` (canvas: `PAL.accentInk`), never `#fff`. Selected
+    tabs and chips are cream with ink, like the lobby's chips; primary
+    buttons are brass pills, like its Play.
   - **Never concatenate an alpha byte onto a token** (`${C.gold}1f` is
-    broken now — `var()` isn't a hex string). Use **`ca('gold','1f')`**,
+    broken — `var()` isn't a hex string). Use **`ca('gold','1f')`**,
     which emits `rgb(var(--c-gold-rgb) / 12.2%)`.
   - **Canvas needs real colours**: `ctx.fillStyle = C.bg` draws nothing.
-    Read from **`PAL`**, the live plain object `applyTheme()` keeps in
-    sync with the resolved palette. If a canvas game caches colours,
-    store palette **token names** and resolve via `PAL[name]` at draw
-    time (see `BOUNCE_ROW_COLORS`) so a theme flip recolours mid-game.
+    Read from **`PAL`**. If a canvas game caches colours, store palette
+    **token names** and resolve via `PAL[name]` at draw time (see
+    `BOUNCE_ROW_COLORS`) — that is also what lets a board's material
+    (below) reach them.
   - Reach for `var(--c-shadow-sm|md|lg)`, `var(--c-scrim)`,
     `var(--c-well)`, `var(--c-well-strong)` and
     `var(--c-accent-hover|emerald-hover|gold-hover)` instead of
     hand-writing rgba shadows/scrims or hand-darkened hues.
   - **Intrinsic game art stays hardcoded on purpose** — Mancala's
     carved wood, checkers browns, Reversi felt, the goban, playing-card
-    faces/suits, Mahjong ivory, and the 2048 / Tile Match / Drop Stack /
-    tetromino palettes do NOT follow the theme. Only chrome re-colours.
-  - The **preference** (`'system' | 'light' | 'dark'`, default
-    `'system'`) lives in localStorage under `puzzlechain_theme`, device-
-    local like every other pref. `applyTheme(pref, persist)` is the only
-    writer; `useTheme()` → `{ pref, resolved, setPref }` is how
-    components read it. A module-scope `prefers-color-scheme` listener
-    re-resolves live while the pref is `'system'`.
-  - `public/index.html` carries an **inline pre-paint script** that sets
-    `data-theme` before the first style block (no ivory flash for
-    dark-mode players) plus a self-contained dark boot-shell block. It
-    duplicates the storage key and resolution rule from
-    `public/src/02-prefs-theme.jsx` on
-    purpose — **keep the two in sync**. `?theme=` and `?settings=1` are
-    the deep links proposal tests use.
-  - The control is `ThemeChoice` (a System/Light/Dark segmented control),
-    rendered by `CgSettings` so the global `SettingsSheet` (⚙ in the nav,
-    ⚙ Settings row on your own profile) and a classic game's ☰ →
-    Settings tab always agree. **Minesweeper's private light/dark button
-    was removed** — its board reads the resolved theme through
-    `data-ms-theme` now (its base `.ms-*` rules are dark and
-    `[data-ms-theme="light"]` overrides them). Don't re-add per-game
-    theme toggles.
+    faces/suits, Mahjong ivory, the 2048 / Tile Match / Drop Stack /
+    tetromino palettes, Ludo's four seat colours, Jet Run's sky and the Daily
+    Bounce well.
+- **A board sits ON the felt; it is not made of it.** Like the lobby's cards,
+  a game's playing surface is an object on the table with a material of its
+  own, chosen to match its lobby card: **`paper`** (the ivory puzzle page —
+  Sudoku, Word Search, Nonogram, Mine Finder and Mine Finder Classic, Crate
+  Push, Anagram Sprint's tiles, Knight's Tour, Snake and Daily Snake, Ludo,
+  Tile Match's tray, Match-3) or **`screen`** (the dark arcade well — Drop
+  Stack, Block Fit, 2048, Diamond Rush, Daily Cipher's grid, Word Sprint,
+  Hash Rush, Bounce, Marble Loop). `PALETTES.paper` / `PALETTES.screen` are
+  the light and dark themes this app shipped before felt, kept verbatim
+  because every board was tuned against them. The card games (Klondike,
+  Spider, Mahjong) lie on the felt itself, and the wooden boards keep their
+  own art. How it works (`BOARD MATERIALS` in `02-prefs-theme.jsx`):
+  - `data-board="paper|screen"` on the board's canvas or container. In CSS,
+    `[data-board]` re-declares every `--c-*` token for that subtree, so the
+    board's own rules (which read `C.*`) resolve to the material.
+  - On canvas, `useCanvasBoard` draws inside `withPal(boardMaterialOf(canvas),
+    …)`, which swaps `PAL`'s values for the duration of the draw; the
+    hand-rolled loops (Hash Rush, Bounce, Marble Loop) wrap their draw the
+    same way. `PAL_MAT` names the material being drawn
+    (Mine Finder's raised keys read it).
+  - **Chrome stays felt.** `cuiDrawControls` draws inside `withPal('felt')`,
+    so pills and buttons on a board's canvas are table chrome, not print on
+    the board. Draw a side panel that is chrome (Drop Stack's Next) inside
+    `withPal('felt')` too.
+  - **A board needs a plate**, or the felt shows through the gaps between
+    its cells: `drawBoardPlate(ctx, x, y, w, h, { pad, W, H })` behind the
+    cells on a canvas that also carries its HUD, or class `board-plate` on a
+    canvas the board fills (its plate is CSS).
+  - New game? Pick its material from its lobby card's art and add both.
+  - **Minesweeper's private light/dark button was removed** long ago, and
+    the Appearance control with it now: its board is paper, so it passes
+    `theme='light'` (`data-ms-theme`).
 - **Shared timer:** `useTimer(running, initialSecs = 0)` counts **up**
   from `initialSecs` and returns `{ secs, fmt }`. Pass `!done` so it
   stops when the round ends; pass a saved elapsed value as `initialSecs`
@@ -642,10 +664,11 @@ The streak multiplies points via **tiers**, defined once in
 
 ## The flip-deck lobby
 
-The home screen is a card table, in **felt in both themes** — like a game
-board, it does not follow light/dark (its colours are fixed in the `.fd-*`
-rules and the `.fd-lobby` / `.fd-ov` custom properties, and `html.felt-page`
-paints the overscroll). Every screen past the lobby still follows the theme.
+The home screen is a card table in felt (its colours are fixed in the `.fd-*`
+rules and the `.fd-lobby` / `.fd-ov` custom properties, the same values as
+`PALETTES.felt`). The felt was the lobby's alone until the in-game pass made
+it the whole app's palette; `html` and `body` paint it, texture included, on
+every screen.
 
 - **Files.** `29a-deck-art.jsx` — every card's picture, as DATA: a list of
   positioned "bits" on a 150 × 100 grid drawn by `DeckArt` (memoised; the lobby
@@ -1875,8 +1898,7 @@ call sites, because the stylesheet could see the OS media query and not the
 preference; `applyMotionPref()` mirrors it onto `<html data-reduce-motion="1">`.
 The `:root[data-reduce-motion="1"]` block and the `prefers-reduced-motion`
 media query list the same selectors — **add new motion to both**, or a player
-gets it in one place and not the other. `?motion=reduce|full` forces it, the
-way `?theme=` does.
+gets it in one place and not the other. `?motion=reduce|full` forces it.
 
 ### Marble Loop: aim, then fire (#212)
 

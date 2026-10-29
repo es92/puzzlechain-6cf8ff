@@ -378,6 +378,7 @@ function TmFrameCanvas({ pills, dayLabel, tiles, hintTileId, fitH, disabled, onT
       <canvas
         ref={canvasRef}
         className="tm-canvas board-canvas"
+        data-board="paper"
         role="img"
         aria-label={`Tile board — ${boardTiles.length} tiles left, ${bar.length} of 7 tray slots used`}
       />

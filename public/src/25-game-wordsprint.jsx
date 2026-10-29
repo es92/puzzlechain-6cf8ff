@@ -418,6 +418,7 @@ function WordSprintGame({ onWin, onStepChange, offset, savedProgress, onSaveProg
     deps: [path, done, wsprCell, W, fmtLeft, found, msg, pressedId],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
+      drawBoardPlate(ctx, boardX, boardY, wsprSide, wsprSide, { pad: 8, W, H, radius: 16 });
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.textAlign = 'center';
@@ -437,7 +438,7 @@ function WordSprintGame({ onWin, onStepChange, offset, savedProgress, onSaveProg
         ctx.strokeStyle = onPath ? PAL.accent : PAL.border;
         ctx.stroke();
         ctx.font = `700 ${Math.round(wsprCell * 0.42)}px 'JetBrains Mono', monospace`;
-        ctx.fillStyle = onPath ? '#fff' : PAL.text;
+        ctx.fillStyle = onPath ? PAL.accentInk : PAL.text;
         ctx.fillText(L[i], x + wsprCell / 2, y + wsprCell / 2 + 1);
         ctx.restore();
         if (isLast) {
@@ -459,6 +460,7 @@ function WordSprintGame({ onWin, onStepChange, offset, savedProgress, onSaveProg
         <canvas
           ref={canvasRef}
           className="wspr-canvas board-canvas"
+          data-board="screen"
           role="grid"
           aria-label={`Word Sprint letters — tracing ${word || 'nothing'}, ${found.length} words found`}
         />

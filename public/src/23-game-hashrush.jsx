@@ -513,10 +513,10 @@ function HashRushGame({ onWin, onLose, onStepChange, resetKey, game, onBack, men
 
     const draw = (s, W, H) => {
       ctx.clearRect(0, 0, W, H);
-      // Play-area chrome follows the theme (PAL, resolved every frame so a
-      // Light↔Dark flip recolours mid-run). The old near-white lane stripes
-      // were invisible in the light palette. The hashes / TNT / hammer below
-      // stay hardcoded — intrinsic arcade art, like the Drop Stack pieces.
+      // The play area reads PAL, resolved every frame, so it takes the
+      // board's material (a screen). The old near-white lane stripes were
+      // invisible in the light palette. The hashes / TNT / hammer below stay
+      // hardcoded — intrinsic arcade art, like the Drop Stack pieces.
       ctx.fillStyle = PAL.bg;
       ctx.fillRect(0, 0, W, H);
       const laneW = W / HR_LANES;
@@ -579,7 +579,7 @@ function HashRushGame({ onWin, onLose, onStepChange, resetKey, game, onBack, men
       lastTsRef.current = ts;
       if (dt > 0.05) dt = 0.05;
       step(s, dt, W, H);
-      draw(s, W, H);
+      withPal(boardMaterialOf(canvas), () => draw(s, W, H)); // the play area is a screen
       // A bounded shift (daily / story rung) that runs its clock out is
       // CLEARED, which is a different ending from running out of lives — the
       // distinction is the only thing that decides whether a story rung ticks.
@@ -632,7 +632,7 @@ function HashRushGame({ onWin, onLose, onStepChange, resetKey, game, onBack, men
             ? { l: 'Left', v: `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, '0')}` }
             : { l: 'Mult', v: '×' + mult },
         ]} />
-        <div className="hr-wrap" ref={wrapRef} data-hr-phase={phase} data-hr-target={target}>
+        <div className="hr-wrap" ref={wrapRef} data-hr-phase={phase} data-hr-target={target} data-board="screen">
           <canvas ref={canvasRef} className="hr-canvas" />
           {boostLeft > 0 && phase === 'playing' && (
             <div className="hr-boost-badge">⚡ Boost {boostLeft}s</div>

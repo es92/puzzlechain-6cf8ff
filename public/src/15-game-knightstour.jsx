@@ -151,7 +151,7 @@ function KtBoardCanvas({ size, blocked, visited, currentPos, validMvs, done, onC
         const isCurrent = idx === currentPos;
         const isVisited = visited[idx] > 0;
         const isBlocked = !!(blocked && blocked.has(idx));
-        ctx.fillStyle = isLight ? PAL.surface : PAL.card;
+        ctx.fillStyle = isLight ? PAL.card : PAL.border; // a paper board: white and tan squares
         ctx.fillRect(x, y, cell, cell);
         if (isBlocked) {
           ctx.fillStyle = PAL.well;
@@ -246,7 +246,8 @@ function KtBoardCanvas({ size, blocked, visited, currentPos, validMvs, done, onC
     <div className="kt-boardbox" ref={boxRef}>
       <canvas
         ref={canvasRef}
-        className="kt-canvas board-canvas"
+        className="kt-canvas board-canvas board-plate"
+        data-board="paper"
         role="grid"
         aria-label={`Knight's Tour board — ${visited.filter((v) => v > 0).length} of ${size * size} squares visited`}
       />

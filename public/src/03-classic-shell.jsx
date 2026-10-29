@@ -7,38 +7,6 @@ function CgToggle({ on, onClick }) {
 
 /* Light / Dark / System segmented control. Shared by the global Settings
    sheet and the in-game ☰ → Settings tab, so both always agree. */
-const THEME_OPTIONS = [
-  { id: 'system', label: 'System', icon: '🖥' },
-  { id: 'light',  label: 'Light',  icon: '☀' },
-  { id: 'dark',   label: 'Dark',   icon: '🌙' },
-];
-
-function ThemeChoice() {
-  const { pref, resolved, setPref } = useTheme();
-  return (
-    <div className="theme-choice">
-      <div className="theme-seg" role="group" aria-label="Theme">
-        {THEME_OPTIONS.map(o => (
-          <button
-            key={o.id}
-            type="button"
-            className={'theme-seg-btn' + (pref === o.id ? ' active' : '')}
-            aria-pressed={pref === o.id}
-            onClick={() => { setPref(o.id); cgSound('click'); }}
-          >
-            <span className="theme-seg-icon">{o.icon}</span>{o.label}
-          </button>
-        ))}
-      </div>
-      <div className="theme-caption">
-        {pref === 'system'
-          ? `Following your device — currently ${resolved === 'dark' ? 'Dark' : 'Light'}.`
-          : `Always ${pref === 'dark' ? 'Dark' : 'Light'}, whatever your device says.`}
-      </div>
-    </div>
-  );
-}
-
 /* Background DJ music (see djMusicStart). OFF by default: the player turns it
    on, from this button or from Settings. It is also gated on Sound, so turning
    music on while Sound is off turns Sound on too, or the button would lie. */
@@ -87,9 +55,7 @@ function CgSettings({ tick }) {
   const flip = (key) => { cgSetPref(key, !cgPrefs[key]); force(n => n + 1); };
   return (
     <div>
-      <h4>Appearance</h4>
-      <ThemeChoice />
-      <h4 className="cg-settings-h4-spaced">Game feedback</h4>
+      <h4>Game feedback</h4>
       <div className="cg-setting-row"><span className="name">Sound</span><CgToggle on={cgPrefs.sound} onClick={() => flip('sound')} /></div>
       <div className="cg-setting-row"><span className="name">Haptics</span><CgToggle on={cgPrefs.haptics} onClick={() => flip('haptics')} /></div>
       <div className="cg-setting-row"><span className="name">Reduced motion</span><CgToggle on={cgPrefs.motion} onClick={() => flip('motion')} /></div>

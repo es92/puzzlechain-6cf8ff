@@ -129,7 +129,7 @@ function MncBoardCanvas({ pits, pitState, storeGlowL, storeGlowR, labelL, labelR
            — so the number obscured the thing it described and the thing it
            described obscured the number. The store now holds seeds and a name;
            the score is a pill above the board, where a score belongs. */
-        ctx.font = `600 ${Math.max(6, Math.round(g.storeW * 0.16))}px 'Space Grotesk', sans-serif`;
+        ctx.font = `600 ${Math.max(6, Math.round(g.storeW * 0.16))}px 'Plus Jakarta Sans', sans-serif`;
         ctx.fillStyle = MNC_WOOD.label;
         ctx.fillText(s.label.toUpperCase().slice(0, 6), s.x + g.storeW / 2, g.pad + storeH * 0.18);
         ctx.fillStyle = MNC_WOOD.label;

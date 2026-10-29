@@ -66,7 +66,7 @@ function ShareButton({ text }) {
     <button
       className="primary-btn tappable"
       data-share-btn="1"
-      style={{ background: C.violet, marginBottom: '0.6rem' }}
+      style={{ background: C.text, marginBottom: '0.6rem' }}
       {...tapProps(copy)}
     >
       {copied === 'ok' ? 'Copied!' : copied === 'fail' ? "Couldn't copy. Try again." : 'Share result'}
@@ -807,15 +807,10 @@ function App() {
     if (g) setHowToGame(g);
   }, [loading]);
 
-  // Theme test hooks (also useful as share/deep links):
-  //   ?theme=light|dark|system — applies + persists the preference
-  //   ?settings=1              — opens the Settings sheet
-  // Read once on mount; the theme applier already ran at module scope, so this
-  // only overrides an explicit request.
+  // ?settings=1 opens the Settings sheet (a test hook and a share link). The
+  // old ?theme= link is ignored: the palette is felt, with nothing to pick.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    const t = q.get('theme');
-    if (t && THEME_PREFS.indexOf(t) >= 0) applyTheme(t, true);
     if (q.get('settings') === '1') setSettingsOpen(true);
   }, []);
 
@@ -2493,12 +2488,9 @@ function App() {
     }
   };
 
-  // The lobby's home is felt in both themes; the html element carries it too so
-  // the overscroll areas match (see .felt-page in the stylesheet).
+  // The card-table home (the Ladder tab keeps its own layout). The felt itself
+  // is the whole app's palette now, painted on <html> and <body>.
   const deckFelt = screen === 'lobby' && lobbyTab !== 'ladder';
-  useEffect(() => {
-    document.documentElement.classList.toggle('felt-page', deckFelt);
-  }, [deckFelt]);
 
   // Home derivations. featuredGame resolves the server's daily_featured row
   // against the client registry; matchItems are the viewer's online matches
@@ -2744,7 +2736,7 @@ function App() {
        deep link, where depth 0 is the difference between falling back to the
        lobby and stepping the embedding page out of the app. */
     <div className={'app' + (fitActive ? ' app-fit' : '')} data-nav-depth={navDepthTick}>
-      <nav className={'nav' + (deckFelt ? ' felt' : '')}>
+      <nav className="nav felt">
         <div className="nav-brand">
           <span className="logo" aria-hidden="true">
             <svg viewBox="0 0 32 32" width="26" height="26"><circle cx="16" cy="16" r="15" fill="#D9B35E" /><circle cx="16" cy="16" r="13.6" fill="none" stroke="#2A1E05" strokeWidth="3" strokeDasharray="4 4.8" opacity="0.35" /><circle cx="16" cy="16" r="9.5" fill="#C29A45" /><circle cx="16" cy="16" r="5" fill="#2A1E05" opacity="0.8" /></svg>
