@@ -2096,8 +2096,8 @@
       "expectText": "Copy link"
     },
     {
-      "name": "Game boards follow the device by default",
-      "path": "/?settings=1",
+      "name": "Game boards can follow the device",
+      "path": "/?theme=system&settings=1",
       "expectText": "Game boards follow your device"
     }
   ],
