@@ -612,7 +612,7 @@ function BounceGame({ onWin, onLose, onStepChange, resetKey, playMode, band, off
         guard += 1;
         if (doneRef.current) break;
       }
-      withPal(boardMaterialOf(canvasRef.current), draw); // the court is a screen
+      withPal(boardMaterialOf(canvasRef.current), draw); // in the game's look
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
@@ -685,10 +685,10 @@ function BounceGame({ onWin, onLose, onStepChange, resetKey, playMode, band, off
             return out;
           }} />
 
-          <div className="bounce-board-wrap" data-board="screen">
+          <div className="bounce-board-wrap">
             <canvas
               ref={canvasRef}
-              className="bounce-canvas board-plate"
+              className="bounce-canvas"
               onMouseMove={handleMouseMove}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}

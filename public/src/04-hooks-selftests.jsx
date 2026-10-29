@@ -2837,41 +2837,34 @@ function cuiDrawMeter(ctx, c) {
   ctx.stroke();
 }
 
-/* The plate a board's cells sit on (BOARD MATERIALS): one rounded rect in the
-   material's page colour behind the cells, with a soft drop onto the felt, so
-   the gaps between cells read as the board and not as the table. Drawn inside
-   the board's withPal, so PAL.bg is the material's. `pad` grows it past the
-   cells; pass the canvas size as W/H and it is clamped to stay inside. */
-function drawBoardPlate(ctx, x, y, w, h, opts) {
-  const o = opts || {};
-  const cw = o.W || Infinity, ch = o.H || Infinity; // the canvas, in CSS px
-  const pad = o.pad || 0;
-  const x0 = Math.max(0, x - pad), y0 = Math.max(0, y - pad);
-  const x1 = Math.min(cw, x + w + pad), y1 = Math.min(ch, y + h + pad);
-  ctx.save();
-  klRR(ctx, x0, y0, x1 - x0, y1 - y0, o.radius != null ? o.radius : 12);
-  if (o.shadow !== false) {
-    ctx.shadowColor = 'rgba(0,0,0,0.30)';
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetY = 3;
-  }
-  ctx.fillStyle = o.fill || PAL.bg;
-  ctx.fill();
-  ctx.restore();
+/* A game's canvas controls are the game's own UI, so they draw in the game's
+   look like its board does (GAME MATS). But a control's colours are usually
+   read from PAL while the game RENDERS, when PAL is still the felt, and only
+   drawn later inside the game's withPal — so a key's tint or a label's ink
+   would arrive as felt (green keys, cream text on an ivory mat). cuiRetint
+   maps a felt value back to the same token in the palette being drawn. */
+const CUI_FELT_KEY = (() => {
+  const m = {}, f = palSnapshot('felt');
+  Object.keys(f).forEach((k) => { m[String(f[k]).toLowerCase()] = k; });
+  return m;
+})();
+function cuiRetint(v) {
+  if (typeof v !== 'string' || PAL_MAT === 'felt') return v;
+  const k = CUI_FELT_KEY[v.toLowerCase()];
+  return k ? PAL[k] : v;
 }
 
-// Canvas chrome is felt even on a paper or screen board: a control sits on
-// the table, it is not printed on the board (see BOARD MATERIALS).
 function cuiDrawControls(ctx, controls, pressedId) {
-  withPal('felt', () => {
-    for (const c of controls) {
-      if (c.noDraw) continue; // twin-only entry (prose the draw pass renders itself)
-      if (c.kind === 'pill') cuiDrawPill(ctx, c);
-      else if (c.kind === 'meter') cuiDrawMeter(ctx, c);
-      else if (c.kind === 'label') cuiDrawLabel(ctx, c);
-      else cuiDrawButton(ctx, c, pressedId === c.id);
-    }
-  });
+  for (const c0 of controls) {
+    if (c0.noDraw) continue; // twin-only entry (prose the draw pass renders itself)
+    const c = (c0.bg || c0.ink || c0.color)
+      ? Object.assign({}, c0, { bg: cuiRetint(c0.bg), ink: cuiRetint(c0.ink), color: cuiRetint(c0.color) })
+      : c0;
+    if (c.kind === 'pill') cuiDrawPill(ctx, c);
+    else if (c.kind === 'meter') cuiDrawMeter(ctx, c);
+    else if (c.kind === 'label') cuiDrawLabel(ctx, c);
+    else cuiDrawButton(ctx, c, pressedId === c.id);
+  }
 }
 
 // Wrapped prose on canvas (clue lines): naive word wrap via measureText.

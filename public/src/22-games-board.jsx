@@ -166,10 +166,10 @@ function ckOwnerOf(v) { return v === 1 || v === 3 ? 1 : v === 2 || v === 4 ? 2 :
    width alone, and since the controls wave their canvases carry the whole
    frame (board + notes + legends + buttons), the box height simply follows
    the canvas. `children` hosts the frame's CuiTwin. */
-function BrgBoardBox({ boxRef, canvasRef, className, cap, ariaLabel, board, children }) {
+function BrgBoardBox({ boxRef, canvasRef, className, cap, ariaLabel, children }) {
   return (
     <div className="brg-canvas-box" style={{ '--brg-cap': cap }} ref={boxRef}>
-      <canvas ref={canvasRef} className={className + ' board-canvas'} data-board={board || undefined} role="img" aria-label={ariaLabel} />
+      <canvas ref={canvasRef} className={className + ' board-canvas'} role="img" aria-label={ariaLabel} />
       {children}
     </div>
   );
@@ -584,10 +584,7 @@ const LUDO_BASE_XY = {
 };
 // Ring entry offsets — mirrors LUDO_START in lib/board-rules.js.
 const LUDO_START_ABS = { 1: 0, 2: 26, 3: 13, 4: 39 };
-// Seat colours are the pieces' own paint (intrinsic, like checkers browns):
-// pinned hues, so a token on the paper board and its seat's Roll button on the
-// felt are the same colour. Blue, red, yellow, green — the board's four.
-const LUDO_SEAT_COLORS = { 1: GA.sky, 2: '#D9473A', 3: '#E3B341', 4: '#2E9E6B' };
+const LUDO_SEAT_COLORS = { 1: C.accent, 2: C.rose, 3: C.gold, 4: GA.teal };
 
 /* #217 — direct piece selection. Tokens used to be drawn at a fixed 5px
    down-right step per token INDEX, so a lone token sat off-centre and four
@@ -849,7 +846,7 @@ function LudoBoardView({ st, myPlayerNum, isMyTurn, submit }) {
     label: !isMyTurn ? 'Waiting…' : phase === 'roll' ? 'Roll' : 'Pick a token',
     font: 13, solid: isMyTurn && phase === 'roll',
     bg: isMyTurn && phase === 'roll' ? palOf(LUDO_SEAT_COLORS[myPlayerNum] || C.accent, '#3A6ECD') : undefined,
-    ink: isMyTurn && phase === 'roll' ? PAL.accentInk : undefined,
+    ink: isMyTurn && phase === 'roll' ? '#fff' : undefined,
     disabled: !isMyTurn || phase !== 'roll',
     action: () => { spinFor(LUDO_ROLL_MS); submit({ type: 'roll' }); },
   });
@@ -990,7 +987,7 @@ function LudoBoardView({ st, myPlayerNum, isMyTurn, submit }) {
   });
 
   return (
-    <BrgBoardBox boxRef={boxRef} canvasRef={canvasRef} className="ludo-canvas" board="paper" cap="380px"
+    <BrgBoardBox boxRef={boxRef} canvasRef={canvasRef} className="ludo-canvas" cap="380px"
       ariaLabel={`Ludo board, ${nPlayers} players`}>
       <CuiTwin controls={controls} />
     </BrgBoardBox>
@@ -1096,7 +1093,7 @@ function BoardOnlineRoom({ gameId, roomId, myPlayerNum, onWin, onStepChange }) {
 
   const st = room.state || {};
   const isMyTurn = room.status === 'active' && (st.currentPlayer || 1) === myPlayerNum;
-  const seatColors = gameId === 'ludo' ? LUDO_SEAT_COLORS : { 1: C.accent, 2: C.rose, 3: C.gold, 4: GA.teal };
+  const seatColors = { 1: C.accent, 2: C.rose, 3: C.gold, 4: GA.teal };
   const myColor = seatColors[myPlayerNum] || C.accent;
   const multiSeat = (room.maxPlayers || 2) > 2;
   const turnLabel = room.status === 'finished'

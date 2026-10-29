@@ -2,11 +2,13 @@ const { useState, useEffect, useRef } = React;
 
 /* ============================================================
    Design system — color palette: the card table
-   One palette, felt. The flip-deck lobby set the look (deep green felt,
-   cream ink, brass for actions and wins, darker panels laid on the felt),
-   and every screen past it now wears the same cloth: there is no light or
-   dark theme any more. The token names are the ones the stylesheet has
-   always used, so every ${C.*} re-colours in place.
+   The app's own chrome is felt. The flip-deck lobby set the look (deep green
+   felt, cream ink, brass for actions and wins, darker panels laid on it), and
+   everything that stays the same from game to game wears it — the nav, a
+   game's header, sheets, the pre-game and result cards. What a game owns is
+   played on its own mat in the game's light or dark look (PALETTES.light /
+   .dark below). The token names are the ones the stylesheet has always used,
+   so every ${C.*} re-colours in place.
    ------------------------------------------------------------
    The palette is not baked into the stylesheet as hex: `PALETTES.felt` holds
    the raw values, `paletteVars()` emits them as CSS custom properties on
@@ -33,13 +35,14 @@ const PALETTES = {
     muted:   '#A8C3B4', // sage
     dim:     '#4D7A67', // faint text, dashed rules
   },
-  /* A board is an object ON the felt, like a lobby card: it keeps a material
-     of its own instead of turning green. These two are the light and dark
-     themes the app shipped before felt, kept verbatim because every board was
-     tuned against them (contrast self-tests included). A board opts in with
-     data-board="paper|screen" on its container — see BOARD MATERIALS in
-     02-prefs-theme.jsx. Same keys as felt, in the same order. */
-  paper: {
+  /* A game is played on its own mat, laid on the felt: everything a game owns
+     (its board, pills, controls and text) takes the game's look, and that
+     look follows the device's light/dark setting (or the Game boards choice
+     in Settings). These two are the light and dark themes the app shipped
+     before felt, kept verbatim because every board was tuned against them.
+     See GAME MATS in 02-prefs-theme.jsx. Same keys as felt, in the same
+     order. */
+  light: {
     bg:      '#FAF6EE', // ivory paper
     surface: '#F3EDDF', // deeper paper
     card:    '#FFFFFF',
@@ -53,7 +56,7 @@ const PALETTES = {
     muted:   '#5E6A87',
     dim:     '#A9A38F',
   },
-  screen: {
+  dark: {
     bg:      '#0A0D14',
     surface: '#12161F',
     card:    '#181D29',
@@ -84,7 +87,7 @@ const DERIVED = {
     'gold-hover':    '#F0D490',
     'accent-ink':    '#2A1E05', // text on a brass / mint / coral / lavender fill
   },
-  paper: {
+  light: {
     'shadow-sm':     'rgba(63,51,24,0.06)',
     'shadow-md':     'rgba(63,51,24,0.14)',
     'shadow-lg':     'rgba(63,51,24,0.22)',
@@ -96,7 +99,7 @@ const DERIVED = {
     'gold-hover':    '#A8871C',
     'accent-ink':    '#FFFFFF',
   },
-  screen: {
+  dark: {
     'shadow-sm':     'rgba(0,0,0,0.45)',
     'shadow-md':     'rgba(0,0,0,0.5)',
     'shadow-lg':     'rgba(0,0,0,0.6)',
@@ -119,7 +122,7 @@ const C = Object.keys(PALETTES.felt).reduce((o, k) => {
 
 /* The palette as real hex, for canvas games — ctx.fillStyle = 'var(--c-bg)'
    draws nothing. `accentInk` rides along (the ink on a solid accent fill).
-   While a board draws, withPal() swaps in that board's material. */
+   While a game's canvas draws, withPal() swaps in the game's look. */
 const PAL = Object.assign({}, PALETTES.felt, { accentInk: DERIVED.felt['accent-ink'] });
 
 function hexToRgbTriplet(hex) {
@@ -151,7 +154,7 @@ function paletteVars(theme) {
     lines.push('  --c-' + k + '-rgb: ' + hexToRgbTriplet(p[k]) + ';');
   }
   for (const k of Object.keys(d)) lines.push('  --c-' + k + ': ' + d[k] + ';');
-  lines.push('  color-scheme: ' + (theme === 'paper' ? 'light' : 'dark') + ';');
+  lines.push('  color-scheme: ' + (theme === 'light' ? 'light' : 'dark') + ';');
   return lines.join('\n');
 }
 

@@ -121,9 +121,9 @@ function floodReveal(startIdx, adjacency, mineSet, prevRevealed, flagged, conf) 
 /* The Minesweeper board is a canvas — Mine Finder's exact pattern (they are
    the same family on purpose). Self-contained because the board lives behind
    the ☰ tab switch: usePointerCell binds on mount, so the canvas must exist
-   when its hooks run. The board's look keys off a theme name, not the raw
-   palette: base art is dark (what the felt app always passes), and the
-   unused light branch pins its own greys — intrinsic to this board. */
+   when its hooks run. The board's light/dark look still keys off the RESOLVED
+   theme (the old data-ms-theme pair), not the raw palette: base art is dark,
+   light pins its own greys — intrinsic to this board, like the daily's. */
 const MS_LIGHT = { grid: '#9ca3af', hidden: '#e5e7eb', revealed: '#f9fafb', mineDead: '#fca5a5', exploded: '#f87171' };
 function MsBoardCanvas({ theme, revealed, flagged, mineSet, adjacency, gameOverMine, done, onCellTap, onCellFlag, onCellAlt, conf }) {
   const board = conf || msConfFor(null);
@@ -213,8 +213,7 @@ function MsBoardCanvas({ theme, revealed, flagged, mineSet, adjacency, gameOverM
     <div className="ms-boardbox" ref={boxRef} onContextMenu={(e) => e.preventDefault()}>
       <canvas
         ref={canvasRef}
-        className="ms-canvas board-canvas board-plate"
-        data-board="paper"
+        className="ms-canvas board-canvas"
         role="grid"
         aria-label={`Minesweeper, ${board.cols} by ${board.rows} board, ${revealed.size} cells revealed`}
       />
@@ -223,9 +222,10 @@ function MsBoardCanvas({ theme, revealed, flagged, mineSet, adjacency, gameOverM
 }
 
 function MinesweeperGame({ onWin, onLose, onStepChange, resetKey, playMode, band }) {
-  // The board is paper on the felt (BOARD MATERIALS), so it takes its light
-  // look: base .ms-* rules are dark and [data-ms-theme="light"] overrides them.
-  const theme = 'light';
+  // The board follows the APP theme now (its own light/dark button is gone —
+  // one control, in Settings). Base .ms-* rules are dark and
+  // [data-ms-theme="light"] overrides them, so the resolved value maps directly.
+  const { resolved: theme } = useTheme();
   /* #331 — the band is an arcade-only string here (story/arcade numeric bands
      never equal 'easy'/'hard', and classics get null), so a plain string gate
      cannot cross modes. */
@@ -562,6 +562,10 @@ function MinesweeperGame({ onWin, onLose, onStepChange, resetKey, playMode, band
                 {!soundOn ? '🔇 Off' : musicPaused ? '▶ Paused' : '⏸ Playing'}
               </button>
             </div>
+          </div>
+          <div className="ms-settings-section">
+            <h4>Game boards</h4>
+            <ThemeChoice />
           </div>
         </div>
       )}

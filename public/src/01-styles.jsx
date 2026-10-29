@@ -8,15 +8,14 @@ const css = `
 ${paletteVars('felt')}
 }
 
-/* Board materials (00-palette.jsx, BOARD MATERIALS in 02-prefs-theme.jsx):
-   a board is an object on the felt, so its subtree gets its own tokens. */
-[data-board="paper"] {
-${paletteVars('paper')}
-  color: var(--c-text);
+/* A game's mat (GAME MATS in 02-prefs-theme.jsx): everything inside it takes
+   the game's light or dark look, so the game's own rules — which read C.* —
+   resolve to that palette. */
+:root[data-boards="light"] [data-board] {
+${paletteVars('light')}
 }
-[data-board="screen"] {
-${paletteVars('screen')}
-  color: var(--c-text);
+:root[data-boards="dark"] [data-board] {
+${paletteVars('dark')}
 }
 
 /* The hosted native kit's accent follows ours, so kit switches, action
@@ -3610,7 +3609,7 @@ ${emitTapHighlightRules()}
 .snake-lb { display: flex; flex-direction: column; gap: 0.2rem; }
 
 /* ---- Hash Rush ---- */
-.hr-wrap { position: relative; width: 100%; height: 62vh; max-height: 560px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, ${C.surface}, ${C.card}); border: 1px solid ${C.border}; }
+.hr-wrap { position: relative; width: 100%; height: 62vh; max-height: 560px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #0c1020, #131a30); border: 1px solid ${C.border}; }
 .hr-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .hr-boost-badge { position: absolute; top: 0.6rem; left: 50%; transform: translateX(-50%); background: rgba(34,211,238,0.18); border: 1px solid #22d3ee; color: #67e8f9; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
 .hr-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; background: rgba(8,10,18,0.6); text-align: center; padding: 1rem; }
@@ -4136,14 +4135,6 @@ ${emitTapHighlightRules()}
   .cg-stage .mnc-board { max-width: min(680px, var(--cg-board)) !important; }
   .cg-stage .cnl-board-wrap { max-width: min(680px, var(--cg-board)) !important; }
 }
-/* A board that fills its own canvas gets its plate from CSS: the material's
-   surface under the cells and a drop onto the felt (BOARD MATERIALS). Boards
-   that share a canvas with their HUD draw theirs (drawBoardPlate). */
-[data-board] canvas.board-plate, canvas.board-plate[data-board] {
-  background: var(--c-surface); border-radius: 12px;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.32);
-}
-
 /* ============================================================
    The flip-deck lobby — the card table
    ============================================================
@@ -4153,13 +4144,31 @@ ${emitTapHighlightRules()}
    every other screen reads through C. Fonts: DM Serif Display for headings
    and card names, Plus Jakarta Sans for the rest. */
 html, body { background-color: #0F4A36; }
-body {
+body, .cg-shell {
+  background-color: #0F4A36;
   background-image:
     radial-gradient(ellipse 80% 520px at 50% 0, #17644A, transparent),
     radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1.4px),
     radial-gradient(rgba(0,0,0,0.13) 1px, transparent 1.4px);
   background-size: 100% 100%, 3px 3px, 5px 5px;
   background-position: 0 0, 0 0, 1px 2px;
+}
+
+/* The mat a game is played on (GAME MATS): the game's page colour, laid on
+   the felt with the felt showing round it. It is the flexible column a fit
+   game sizes its board in, so it flexes exactly like the game root used to. */
+.game-mat {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--c-bg); color: var(--c-text);
+  border-radius: 22px; padding: 12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.25), 0 14px 34px rgba(0,0,0,0.32);
+}
+.game-felt { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.game-wrap.fit .game-mat, .game-wrap.fit .game-felt { flex: 1 1 auto; }
+/* In ClassicShell the mat sits between the top bar and the bottom edge. */
+.cg-mat {
+  flex: 1 1 auto; padding: 0; overflow: hidden;
+  margin: 0 calc(8px + var(--pc-safe-right)) calc(8px + var(--pc-safe-bottom)) calc(8px + var(--pc-safe-left));
 }
 .nav.felt { background: #0A3326; border-bottom-color: rgba(255,255,255,0.10); color: #F3EBD8; }
 .nav .logo svg { display: block; }

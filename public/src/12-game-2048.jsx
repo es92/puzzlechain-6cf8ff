@@ -315,8 +315,7 @@ function T2048BoardCanvas({ grid }) {
     <div className="t2048-canvas-fill" ref={boxRef}>
       <canvas
         ref={canvasRef}
-        className="t2048-canvas board-canvas board-plate"
-        data-board="screen"
+        className="t2048-canvas board-canvas"
         role="img"
         aria-label={`2048 board — highest tile ${t2048_maxTile(grid) || 0}`}
       />

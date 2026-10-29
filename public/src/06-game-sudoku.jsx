@@ -962,7 +962,6 @@ function SudokuBoard({ difficulty, bandName, board, dayNum, onWin, onStepChange,
     deps: [grid, selected, errors, hintedCells, done, sdkCell, W, fmt, steps, pressedId, bandName, undoStack.length, hints.hintsLeft, hints.msg, hints.buying],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
-      drawBoardPlate(ctx, boardX, boardY, sdkSide, sdkSide, { pad: 6, W, H, radius: 8 });
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.fillStyle = PAL.border; // 1px gridlines (#149's gap idiom, drawn)
@@ -1017,7 +1016,6 @@ function SudokuBoard({ difficulty, bandName, board, dayNum, onWin, onStepChange,
         <canvas
           ref={canvasRef}
           className="sdk-canvas board-canvas"
-          data-board="paper"
           role="grid"
           aria-label={`Sudoku ${size} by ${size} board — ${filled} of ${size * size} filled`}
         />

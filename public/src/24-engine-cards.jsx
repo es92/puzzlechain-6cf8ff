@@ -2349,7 +2349,6 @@ function NonogramGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
       const radius = Math.max(2, Math.round(cell * 0.14));
       const gridW = cellStep * NG_COLS, gridH = cellStep * NG_ROWS;
       const xEnd = gutterX + gridW - NG_GAP, yEnd = gutterY + gridH - NG_GAP;
-      drawBoardPlate(ctx, 0, 0, xEnd, yEnd, { pad: 6, radius: 8 }); // clues + grid: the paper
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -2456,7 +2455,6 @@ function NonogramGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
         <canvas
           ref={canvasRef}
           className="ng-canvas board-canvas"
-          data-board="paper"
           role="grid"
           aria-label={`Nonogram, ${NG_COLS} by ${NG_ROWS} picture grid, ${filled} of ${view.targetFilled} cells filled, ${nErr} lines not matching their clues`}
         />
@@ -2962,13 +2960,12 @@ function MineFinderGame({ onWin, onLose, onStepChange, offset, savedProgress, on
     deps: [cell, revealed, flags, boom, pulse, done, W, fmt, steps, flagMode, pressedId],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
-      drawBoardPlate(ctx, boardX, boardY, MF_COLS * cellStep - MF_GAP, MF_ROWS * cellStep - MF_GAP, { pad: 6, W, H, radius: 10 });
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const radius = Math.max(3, Math.round(cell * 0.16));
-      const dark = PAL_MAT === 'screen'; // the board's material (BOARD MATERIALS)
+      const dark = themeState.resolved === 'dark';
       for (let i = 0; i < MF_COLS * MF_ROWS; i++) {
         const r = Math.floor(i / MF_COLS), c = i % MF_COLS;
         const x = c * cellStep, y = r * cellStep;
@@ -3026,7 +3023,6 @@ function MineFinderGame({ onWin, onLose, onStepChange, offset, savedProgress, on
         <canvas
           ref={canvasRef}
           className="mf-canvas board-canvas"
-          data-board="paper"
           role="grid"
           aria-label={`Mine Finder, ${MF_COLS} by ${MF_ROWS} field, ${minesLeft} mines unflagged, ${revealed.size} of ${board.current.total} safe cells uncovered`}
         />
@@ -3342,7 +3338,6 @@ function AnagramsGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
         <canvas
           ref={canvasRef}
           className="an-canvas board-canvas"
-          data-board="paper"
           role="img"
           aria-label={`Anagram — ${picked.length} of ${word.length} letters placed, word ${Math.min(solvedCount + 1, words.length)} of ${words.length}`}
         />
@@ -3683,7 +3678,6 @@ function CratePushGame({ onWin, onStepChange, offset, savedProgress, onSaveProgr
     deps: [player, crates, done, cpCell, W, fmt, moves, hist.length, pressedId],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
-      drawBoardPlate(ctx, boardX, boardY, cpW, cpH, { pad: 6, W, H, radius: 8 });
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.textAlign = 'center';
@@ -3730,7 +3724,6 @@ function CratePushGame({ onWin, onStepChange, offset, savedProgress, onSaveProgr
         <canvas
           ref={canvasRef}
           className="cp-canvas board-canvas"
-          data-board="paper"
           role="img"
           aria-label={`Crate Push — ${crates.filter(([cx, cy]) => level.goals.has(cx + ',' + cy)).length}/${crates.length} crates home, ${moves} moves`}
         />
@@ -4181,24 +4174,20 @@ function DropStackGame({ onWin, onLose, onStepChange, offset, savedProgress, onS
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
       // Next panel (display) + the queued minis; the Hold button's mini
-      // draws over its control face. Side chrome, so felt like Hold.
-      withPal('felt', () => {
-        klRR(ctx, sideX, boardY, DS_SIDE_W, DS_NEXT_H, 10);
-        ctx.fillStyle = PAL.card;
-        ctx.fill();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = PAL.border;
-        ctx.stroke();
-        ctx.font = '600 9px ' + CUI_FONT;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = PAL.muted;
-        ctx.fillText('NEXT', sideX + DS_SIDE_W / 2, boardY + 14);
-        nextThree.forEach((n, k) => dsDrawMini(ctx, n, sideX + 4, boardY + 18 + k * 32, DS_SIDE_W - 8, 30));
-        dsDrawMini(ctx, hold, sideX + 4, boardY + DS_NEXT_H + 8 + 24, DS_SIDE_W - 8, DS_HOLD_H - 30);
-      });
-      // The well is the board: a screen on the felt (data-board below).
-      drawBoardPlate(ctx, gx0, boardY, wellW, wellH, { pad: 4, W, H, radius: 10 });
+      // draws over its control face.
+      klRR(ctx, sideX, boardY, DS_SIDE_W, DS_NEXT_H, 10);
+      ctx.fillStyle = PAL.card;
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = PAL.border;
+      ctx.stroke();
+      ctx.font = '600 9px ' + CUI_FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = PAL.muted;
+      ctx.fillText('NEXT', sideX + DS_SIDE_W / 2, boardY + 14);
+      nextThree.forEach((n, k) => dsDrawMini(ctx, n, sideX + 4, boardY + 18 + k * 32, DS_SIDE_W - 8, 30));
+      dsDrawMini(ctx, hold, sideX + 4, boardY + DS_NEXT_H + 8 + 24, DS_SIDE_W - 8, DS_HOLD_H - 30);
       ctx.save();
       ctx.translate(gx0, boardY);
       const radius = Math.max(2, Math.round(cell * 0.18));
@@ -4241,7 +4230,6 @@ function DropStackGame({ onWin, onLose, onStepChange, offset, savedProgress, onS
         <canvas
           ref={canvasRef}
           className="ds-canvas board-canvas"
-          data-board="screen"
           role="grid"
           aria-label={`Drop Stack well, level ${level}, ${lines} lines cleared, piece ${Math.min(pieceIdx + 1, bagLen)} of ${bagLen}`}
         />

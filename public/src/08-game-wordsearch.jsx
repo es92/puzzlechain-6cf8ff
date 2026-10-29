@@ -424,7 +424,6 @@ function WordHuntGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
     deps: [foundCells, hintedStarts, sel, done, wsCell, W, fmt, steps, found, pressedId, hints.hintsLeft, hints.msg, hints.buying],
     draw: (ctx) => {
       cuiDrawControls(ctx, ctlRef.current, pressedId);
-      drawBoardPlate(ctx, boardX, boardY, wsSide, wsSide, { pad: 6, W, H, radius: 8 });
       ctx.save();
       ctx.translate(boardX, boardY);
       ctx.fillStyle = PAL.border; // the 1px gridline gaps
@@ -470,7 +469,7 @@ function WordHuntGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
           /* A found letter was emerald ON an emerald wash: 3.27:1 in light,
              under the 4.5 AA bar. The tint already says "found" — the letter
              does not have to repeat it, and in ink it reads at 9.15:1. */
-          ctx.fillStyle = isSel ? PAL.accentInk : PAL.text;
+          ctx.fillStyle = isSel ? '#fff' : PAL.text;
           ctx.fillText(String(letters[r][c]).toUpperCase(), x + wsCell / 2, y + wsCell / 2 + 1);
         }
       }
@@ -484,7 +483,6 @@ function WordHuntGame({ onWin, onStepChange, offset, savedProgress, onSaveProgre
         <canvas
           ref={canvasRef}
           className="ws-canvas board-canvas"
-          data-board="paper"
           role="grid"
           aria-label={`Word search grid — ${found.size} of ${total} words found`}
         />

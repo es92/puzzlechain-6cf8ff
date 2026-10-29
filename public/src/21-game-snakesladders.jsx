@@ -645,7 +645,7 @@ function ChutesLaddersOnlineGame({ onWin, onStepChange, roomId, myPlayerNum, onG
         { id: 'die', kind: 'button', r: [Math.floor(W / 2) - 24, 3, 48, 48], label: st.die == null ? '·' : String(st.die), twinLabel: st.die == null ? 'Die not yet rolled' : `Die showing ${st.die}`, pips: st.die == null ? null : CNL_DIE_PIPS[st.die], font: 20, mono: true, disabled: true },
         { id: 'roll', kind: 'button', r: [W - Math.floor(W * 0.34) - 4, 7, Math.floor(W * 0.34), 40],
           label: status === 'finished' ? 'Game over' : isMyTurn ? 'Roll' : 'Waiting…',
-          solid: isMyTurn, bg: isMyTurn ? palOf(myColor, undefined) : undefined, ink: isMyTurn ? PAL.accentInk : undefined,
+          solid: isMyTurn, bg: isMyTurn ? palOf(myColor, undefined) : undefined, ink: isMyTurn ? '#fff' : undefined,
           disabled: !isMyTurn, action: doRoll },
       ])} />
     </div>

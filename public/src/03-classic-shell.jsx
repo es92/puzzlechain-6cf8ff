@@ -5,8 +5,42 @@ function CgToggle({ on, onClick }) {
   return <button className={'cg-toggle' + (on ? ' on' : '')} onClick={onClick} aria-pressed={on} />;
 }
 
-/* Light / Dark / System segmented control. Shared by the global Settings
-   sheet and the in-game ☰ → Settings tab, so both always agree. */
+/* Light / Dark / System segmented control for the look a game is played in
+   (GAME MATS in 02-prefs-theme.jsx) — the app's chrome is felt whatever it
+   says. Shared by the global Settings sheet and the in-game ☰ → Settings tab,
+   so both always agree. */
+const THEME_OPTIONS = [
+  { id: 'system', label: 'System', icon: '🖥' },
+  { id: 'light',  label: 'Light',  icon: '☀' },
+  { id: 'dark',   label: 'Dark',   icon: '🌙' },
+];
+
+function ThemeChoice() {
+  const { pref, resolved, setPref } = useTheme();
+  return (
+    <div className="theme-choice">
+      <div className="theme-seg" role="group" aria-label="Game boards">
+        {THEME_OPTIONS.map(o => (
+          <button
+            key={o.id}
+            type="button"
+            className={'theme-seg-btn' + (pref === o.id ? ' active' : '')}
+            aria-pressed={pref === o.id}
+            onClick={() => { setPref(o.id); cgSound('click'); }}
+          >
+            <span className="theme-seg-icon">{o.icon}</span>{o.label}
+          </button>
+        ))}
+      </div>
+      <div className="theme-caption">
+        {pref === 'system'
+          ? `Game boards follow your device — currently ${resolved === 'dark' ? 'Dark' : 'Light'}.`
+          : `Game boards are always ${pref === 'dark' ? 'Dark' : 'Light'}, whatever your device says.`}
+      </div>
+    </div>
+  );
+}
+
 /* Background DJ music (see djMusicStart). OFF by default: the player turns it
    on, from this button or from Settings. It is also gated on Sound, so turning
    music on while Sound is off turns Sound on too, or the button would lie. */
@@ -55,7 +89,9 @@ function CgSettings({ tick }) {
   const flip = (key) => { cgSetPref(key, !cgPrefs[key]); force(n => n + 1); };
   return (
     <div>
-      <h4>Game feedback</h4>
+      <h4>Game boards</h4>
+      <ThemeChoice />
+      <h4 className="cg-settings-h4-spaced">Game feedback</h4>
       <div className="cg-setting-row"><span className="name">Sound</span><CgToggle on={cgPrefs.sound} onClick={() => flip('sound')} /></div>
       <div className="cg-setting-row"><span className="name">Haptics</span><CgToggle on={cgPrefs.haptics} onClick={() => flip('haptics')} /></div>
       <div className="cg-setting-row"><span className="name">Reduced motion</span><CgToggle on={cgPrefs.motion} onClick={() => flip('motion')} /></div>
@@ -659,7 +695,15 @@ function ClassicShell({ game, onExit, onNewGame, sheetSections, children, menuCo
         <button className="cg-btn" onClick={toggleSound} title="Sound" aria-label="Sound">{cgPrefs.sound ? '🔊' : '🔇'}</button>
         <button className="cg-btn" onClick={() => open()} title="Menu" aria-label="Menu">☰</button>
       </div>
-      <CgShellActionsContext.Provider value={actionsApi.current}>{children}</CgShellActionsContext.Provider>
+      {/* The game's own area, on its mat (GAME MATS): the top bar above and
+          the sheet below stay felt. Card games lie on the felt instead. */}
+      {game.onFelt
+        ? <CgShellActionsContext.Provider value={actionsApi.current}>{children}</CgShellActionsContext.Provider>
+        : (
+          <div className="game-mat cg-mat" data-board="">
+            <CgShellActionsContext.Provider value={actionsApi.current}>{children}</CgShellActionsContext.Provider>
+          </div>
+        )}
       <div className={'cg-sheet-backdrop' + (sheetOpen ? ' open' : '')} onClick={() => setSheetOpen(false)} />
       <div className={'cg-sheet' + (sheetOpen ? ' open' : '')}>
         <div className="cg-sheet-handle" />

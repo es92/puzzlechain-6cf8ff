@@ -556,6 +556,7 @@ const GAMES = [
   // spec's IP-hygiene rules: generic public-domain game names only.
   {
     id: 'klondike',
+    onFelt: true, // its cards lie on the felt itself: no game mat (GAME MATS)
     name: 'Klondike Solitaire',
     icon: '🃏',
     category: 'daily',
@@ -576,6 +577,7 @@ const GAMES = [
   },
   {
     id: 'spider',
+    onFelt: true, // its cards lie on the felt itself: no game mat (GAME MATS)
     name: 'Spider Solitaire',
     icon: '🕷️',
     category: 'daily',
@@ -596,6 +598,7 @@ const GAMES = [
   },
   {
     id: 'mahjongsol',
+    onFelt: true, // its cards lie on the felt itself: no game mat (GAME MATS)
     name: 'Mahjong Solitaire',
     icon: '🎴',
     category: 'daily',

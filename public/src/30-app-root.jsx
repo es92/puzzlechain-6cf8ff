@@ -807,10 +807,15 @@ function App() {
     if (g) setHowToGame(g);
   }, [loading]);
 
-  // ?settings=1 opens the Settings sheet (a test hook and a share link). The
-  // old ?theme= link is ignored: the palette is felt, with nothing to pick.
+  // Test hooks (also useful as share/deep links):
+  //   ?theme=light|dark|system — applies + persists the game-board look
+  //   ?settings=1              — opens the Settings sheet
+  // Read once on mount; the look applier already ran at module scope, so this
+  // only overrides an explicit request.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
+    const t = q.get('theme');
+    if (t && THEME_PREFS.indexOf(t) >= 0) applyTheme(t, true);
     if (q.get('settings') === '1') setSettingsOpen(true);
   }, []);
 
@@ -2446,6 +2451,9 @@ function App() {
                 >?</button>
               )}
             </div>
+            {/* The game's own area, on its mat (GAME MATS): the header above
+                stays felt. Card games (onFelt) lie on the felt instead. */}
+            <div className={currentGame.onFelt ? 'game-felt' : 'game-mat'} data-board={currentGame.onFelt ? undefined : ''}>
             <GameComponent
               /* #198 — the REPLAY controls on a daily's result card ("Play
                  again for fun", "Another practice run") go through
@@ -2482,6 +2490,7 @@ function App() {
                 : localResumable ? saveLocalRun : null}
               resetKey={playAgainKey}
             />
+            </div>
           </div>
         );
       }
@@ -3219,14 +3228,17 @@ function App() {
               (real-time dailies with no resume) fall through to result-only. */}
           {lockedReviewable && lockedReview ? (
             <div className="game-body frozen">
-              {React.createElement(currentGame.component, {
-                onWin: () => {}, onLose: () => {}, onStepChange: () => {},
-                offset,
-                savedProgress: attempts[currentGame.id].progress,
-                onSaveProgress: null,
-                readOnly: true,
-                resetKey: 0,
-              })}
+              {/* On its mat, like the live board (GAME MATS). */}
+              <div className={currentGame.onFelt ? 'game-felt' : 'game-mat'} data-board={currentGame.onFelt ? undefined : ''}>
+                {React.createElement(currentGame.component, {
+                  onWin: () => {}, onLose: () => {}, onStepChange: () => {},
+                  offset,
+                  savedProgress: attempts[currentGame.id].progress,
+                  onSaveProgress: null,
+                  readOnly: true,
+                  resetKey: 0,
+                })}
+              </div>
             </div>
           ) : (
             <LockedScreen

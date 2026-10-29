@@ -644,8 +644,7 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
       ctx.restore();
     }
 
-    // The track is a screen on the felt (BOARD MATERIALS): every frame draws
-    // with that material's palette.
+    // Every frame draws in the game's look (GAME MATS).
     const paintFrame = () => withPal(boardMaterialOf(canvas), drawFrame);
     if (!loopRunning) { paintFrame(); return; }
 
@@ -943,8 +942,7 @@ function ZumaGame({ onWin, onLose, onStepChange, resetKey, playMode, band, offse
         React.createElement('div', { className: 'zuma-wrap' },
           React.createElement('canvas', {
             ref: canvasRef,
-            className: 'zuma-canvas board-plate',
-            'data-board': 'screen',
+            className: 'zuma-canvas',
             onMouseMove: e => { updateAim(e); aimedRef.current = true; if (!aimed) setAimed(true); },
             onClick: e => { updateAim(e); shoot(); },
           })
@@ -1082,8 +1080,7 @@ function M3BoardCanvas({ tiles, bar, done, onTile }) {
     <div className="m3-grid" ref={boxRef}>
       <canvas
         ref={canvasRef}
-        className="m3-canvas board-canvas board-plate"
-        data-board="paper"
+        className="m3-canvas board-canvas"
         role="grid"
         aria-label={`Match 3 board — ${tiles.filter((t) => !t.removed).length} tiles left, ${bar.length} in tray`}
       />
